@@ -1,0 +1,127 @@
+#ifndef HIGHLIGHTERC_HPP_
+#define HIGHLIGHTERC_HPP_
+
+#include "Highlighter.hpp"
+#include <set>
+
+class CTokenIterator {
+    public:
+        inline CTokenIterator( const std::string& str ) :
+              m_cur_str(""), m_parse_str( str ), m_offset(0)
+            , m_in_quotes(false), m_body(0), m_space(false) {
+            this->operator++();
+        }
+
+        virtual void operator++();
+
+        virtual inline const std::string& operator*() const
+            { return m_cur_str ; }
+        
+        virtual inline std::string& get() 
+            { return m_cur_str ; }
+
+        virtual inline bool hasNext() const
+            { return !(m_offset == m_parse_str.length() && m_cur_str.length() == 0); }
+    private:
+
+        inline void p_UpdateForChar( char ch ) {
+            switch ( ch ) {
+            case '"':
+                m_in_quotes = ! m_in_quotes;
+                break;
+            case '{':
+                if( ! m_in_quotes )
+                    m_body ++;
+                break;
+            case '}':
+                if( ! m_in_quotes )
+                    m_body --;
+                break;
+            case '#':
+                if( ! m_in_quotes )
+                    m_in_hash = true;
+                break ;
+            }
+        }
+
+        std::string   m_cur_str;
+        const std::string&   m_parse_str;
+        size_t        m_offset;
+
+        bool          m_in_quotes;
+        int           m_body;
+        bool          m_space; // used for consolidating whitespace
+        bool          m_in_hash;
+};
+
+class CHighlighter {
+public:
+    inline CHighlighter() {
+            m_highlight_groups.push_back( "Type" );
+            m_highlight_groups.push_back( "Constant" );
+            m_highlight_groups.push_back( "Function" );
+            m_blacklist.insert("auto");
+            m_blacklist.insert("break");
+            m_blacklist.insert("case");
+            m_blacklist.insert("char");
+            m_blacklist.insert("const");
+            m_blacklist.insert("continue");
+            m_blacklist.insert("default");
+            m_blacklist.insert("do");
+            m_blacklist.insert("double");
+            m_blacklist.insert("else");
+            m_blacklist.insert("enum");
+            m_blacklist.insert("extern");
+            m_blacklist.insert("float");
+            m_blacklist.insert("for");
+            m_blacklist.insert("goto");
+            m_blacklist.insert("if");
+            m_blacklist.insert("int");
+            m_blacklist.insert("long");
+            m_blacklist.insert("register");
+            m_blacklist.insert("return");
+            m_blacklist.insert("short");
+            m_blacklist.insert("signed");
+            m_blacklist.insert("sizeof");
+            m_blacklist.insert("static");
+            m_blacklist.insert("struct");
+            m_blacklist.insert("switch");
+            m_blacklist.insert("typedef");
+            m_blacklist.insert("union");
+            m_blacklist.insert("unsigned");
+            m_blacklist.insert("void");
+            m_blacklist.insert("volatile");
+            m_blacklist.insert("while");
+        }
+    /* Runs the highlight on a string which was
+     * read in from a file */
+    /* This function may be run in parallel, so protection
+     * sould be used */
+    virtual void runHighlight( const std::string& str ) ;
+
+    /* Return the groups that are used to high
+     * light */
+    virtual inline const std::vector<std::string>& getHighlightGroups() const 
+        { return m_highlight_groups; }
+
+    /* Returns keywords for the passed highlight group */
+    virtual const std::vector<std::string>* getHighlightsForGroup( const std::string& group ) ;
+private:
+    virtual void p_ParseToken( std::string& token ) ;
+
+    inline void p_AddTo( const std::string& str, std::vector<std::string>& vec ) {
+        if( str.length() > 0 && m_blacklist.find( str ) == m_blacklist.end() )
+            vec.push_back( str );
+    }
+
+    int p_ParseEnumConstants( const std::string& str, std::vector<std::string>& into );
+    int p_TryParseFunction( const std::string& str, std::vector<std::string>& into );
+
+    std::vector<std::string> m_types;
+    std::vector<std::string> m_constants;
+    std::vector<std::string> m_functions;
+    std::vector<std::string> m_highlight_groups;
+    std::set<std::string> m_blacklist;
+};
+
+#endif
