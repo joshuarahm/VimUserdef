@@ -7,6 +7,7 @@
 #include <cctype>
 #include <locale>
 #include <pcrecpp.h>
+#include <cstring>
 #include <set>
 
 using namespace std;
@@ -127,11 +128,11 @@ int CHighlighter::p_ParseEnumConstants (const string& str, vector<string>& into 
     if( i == str.length() ) {
         return 0;
     }
-    ++ i;
     string buf;
-    for( ; i < str.length() && i != '}'; ++ i ) {
+    while( i < str.length() && str[i] != '}' ) {
+        ++ i;
         while( i < str.length() && isspace(str[i]) ) i ++;
-        while( i < str.length() && isalnum(str[i]) )
+        while( i < str.length() && (isalnum(str[i])||str[i]=='_') )
             buf += str[i++];
         while( i < str.length() && isspace(str[i]) ) i ++;
         p_AddTo( buf, into );
@@ -150,7 +151,7 @@ void CHighlighter::p_ParseToken( string& token ) {
         words.nextWord( buf );
         if( buf == "struct" || buf == "enum" || buf == "union" ) {
             if( buf == "enum" ) {
-                p_ParseEnumConstants( token, this->m_types );
+                p_ParseEnumConstants( token, this->m_constants );
             }
             if( words.nextWord( buf ) ) {
                 p_AddTo( buf, m_types );
@@ -196,42 +197,37 @@ const vector<string>* CHighlighter::getHighlightsForGroup( const string& group )
     return NULL;
 }
 
-int main( int argc, char** argv ) {
-
-    if( argc < 2 ) {
-        return -1;
-    }
-
+void CHighlighter::highlightFile( const std::string& filename ) {
     string output;
-
     char buf[4096];
+
+    /* Get the correct C Compiler from
+     * the environment */
     char* cc = getenv("CC");
+
+    /* Get the correct CFLAGS to use from
+     * the environment */
     char* cflags = getenv("CFLAGS");
+
+    /* Use some default values if
+     * the environment is empty */
     if( cc == NULL ) cc = (char*)"gcc";
     if( cflags == NULL ) cflags = (char*)"";
 
-    snprintf( buf, sizeof(buf), "%s -E %s %s", cc, argv[1], cflags );
+    /* Get the command to run and popen */
+    snprintf( buf, sizeof(buf), "%s -E %s %s", cc, filename.c_str(), cflags );
+
+    /* Popen the command */
     FILE* tmp = popen( buf, "r" );
     size_t bytes_read;
 
+    /* read a chunk from a file */
     while( (bytes_read = fread( buf, 1, sizeof(buf) - 1, tmp )) > 0 ) {
         buf[bytes_read] = '\0';
+        /* Append that chunk to a file */
         output.append( buf, 0, bytes_read );
-    }
+    };
 
-    CHighlighter highlight;
-    highlight.runHighlight( output );
-
-    for( vector<string>::const_iterator itr = highlight.getHighlightGroups().begin() ;
-        itr != highlight.getHighlightGroups().end() ; ++ itr ) {
-        const vector<string>* vec = highlight.getHighlightsForGroup( *itr );
-        if( vec != NULL ) {
-            for( vector<string>::const_iterator itr2 = vec->begin() ;
-                itr2 != vec->end() ; ++ itr2 ) {
-                printf("syn keyword userdef%s %s\n", itr->c_str(), itr2->c_str() );
-            }
-        }
-    }
-
-    return 0;
+    this->runHighlight( output );
 }
+

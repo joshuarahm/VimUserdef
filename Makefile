@@ -1,11 +1,16 @@
-all: StringWordIterator.o HighlighterC.o
-	g++ -o vimuserdef HighlighterC.o StringWordIterator.o -lpcrecpp
+CPPC=g++
+
+all: StringWordIterator.o HighlighterC.o main.o
+	$(CPPC) -o vimuserdef main.o HighlighterC.o StringWordIterator.o -lpcrecpp
 
 StringWordIterator.o: StringWordIterator.cpp
-	g++ -g -o StringWordIterator.o -c StringWordIterator.cpp
+	$(CPPC) -g -o StringWordIterator.o -c StringWordIterator.cpp
 
 HighlighterC.o: HighlighterC.cpp
-	g++ -g -o HighlighterC.o -c HighlighterC.cpp
+	$(CPPC) -g -o HighlighterC.o -c HighlighterC.cpp
+
+main.o:
+	$(CPPC) -g -o main.o -c main.cpp
 
 clean:
 	rm *.o vimuserdef

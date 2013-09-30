@@ -54,7 +54,7 @@ class CTokenIterator {
         bool          m_in_hash;
 };
 
-class CHighlighter {
+class CHighlighter : public Highlighter {
 public:
     inline CHighlighter() {
             m_highlight_groups.push_back( "Type" );
@@ -98,6 +98,9 @@ public:
     /* This function may be run in parallel, so protection
      * sould be used */
     virtual void runHighlight( const std::string& str ) ;
+
+    /* Run highlighting on a specific file */
+    virtual void highlightFile( const std::string& filename );
 
     /* Return the groups that are used to high
      * light */

@@ -3,10 +3,6 @@
 " and sub directories to detect what new
 " types there are
 function! DetectTypes( ... )
-    if &filetype != 'c'
-        return
-    endif
-
     if a:0 > 0
         " Overridden default value
         let l:file=a:1
