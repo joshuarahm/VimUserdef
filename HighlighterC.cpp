@@ -129,13 +129,23 @@ int CHighlighter::p_ParseEnumConstants (const string& str, vector<string>& into 
         return 0;
     }
     string buf;
+    bool isconst = true;
     while( i < str.length() && str[i] != '}' ) {
         ++ i;
         while( i < str.length() && isspace(str[i]) ) i ++;
         while( i < str.length() && (isalnum(str[i])||str[i]=='_') )
             buf += str[i++];
         while( i < str.length() && isspace(str[i]) ) i ++;
-        p_AddTo( buf, into );
+
+        if( isconst ) {
+            p_AddTo( buf, into );
+        }
+
+        if( str[i] == '=' )
+            isconst = false;
+        else if( str[i] == ',' )
+            isconst = true;
+
         buf.clear();
     }
 }
