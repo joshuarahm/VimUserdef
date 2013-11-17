@@ -91,7 +91,7 @@ static int extract_function_typedef( const string& str, string& buf ) {
     return false;
 }
 
-int CHighlighter::p_TryParseFunction( const string& str, vector<string>& into ) {
+int CHighlighter::p_TryParseFunction( const string& str, set<string>& into ) {
     static const pcrecpp::RE regex( "\\s*(\\w+(\\s*\\*\\s*)*\\s+)+\\**(\\w+)\\s*\\(" );
 
     string buf;
@@ -122,7 +122,7 @@ static int try_extact_no_attr( const string& str, string& buf ) {
     return false;
 }
 
-int CHighlighter::p_ParseEnumConstants (const string& str, vector<string>& into ) {;
+int CHighlighter::p_ParseEnumConstants (const string& str, set<string>& into ) {;
     size_t i;
     for( i = 0; i < str.length() && str[i] != '{'; i ++ );
     if( i == str.length() ) {
@@ -148,6 +148,7 @@ int CHighlighter::p_ParseEnumConstants (const string& str, vector<string>& into 
 
         buf.clear();
     }
+    return 1;
 }
 
 void CHighlighter::p_ParseToken( string& token ) {
@@ -196,7 +197,7 @@ void CHighlighter::runHighlight( const string& str ) {
     }
 }
 
-const vector<string>* CHighlighter::getHighlightsForGroup( const string& group ) {
+const set<string>* CHighlighter::getHighlightsForGroup( const string& group ) {
     if( group == "Type" ) {
         return & m_types;
     } else if ( group == "Constant" ) {

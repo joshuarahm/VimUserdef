@@ -104,26 +104,30 @@ public:
 
     /* Return the groups that are used to high
      * light */
-    virtual inline const std::vector<std::string>& getHighlightGroups() const 
+    virtual inline const std::vector<std::string>& getHighlightKeywordGroups() const 
         { return m_highlight_groups; }
 
+    virtual inline const std::vector<std::string>& getHighlightMatchGroups() const 
+        { return m_highlight_match_groups; }
+
     /* Returns keywords for the passed highlight group */
-    virtual const std::vector<std::string>* getHighlightsForGroup( const std::string& group ) ;
+    virtual const std::set<std::string>* getHighlightsForGroup( const std::string& group ) ;
 private:
     virtual void p_ParseToken( std::string& token ) ;
 
-    inline void p_AddTo( const std::string& str, std::vector<std::string>& vec ) {
+    inline void p_AddTo( const std::string& str, std::set<std::string>& vec ) {
         if( str.length() > 0 && m_blacklist.find( str ) == m_blacklist.end() )
-            vec.push_back( str );
+            vec.insert( str );
     }
 
-    int p_ParseEnumConstants( const std::string& str, std::vector<std::string>& into );
-    int p_TryParseFunction( const std::string& str, std::vector<std::string>& into );
+    int p_ParseEnumConstants( const std::string& str, std::set<std::string>& into );
+    int p_TryParseFunction( const std::string& str, std::set<std::string>& into );
 
-    std::vector<std::string> m_types;
-    std::vector<std::string> m_constants;
-    std::vector<std::string> m_functions;
+    std::set<std::string> m_types;
+    std::set<std::string> m_constants;
+    std::set<std::string> m_functions;
     std::vector<std::string> m_highlight_groups;
+    std::vector<std::string> m_highlight_match_groups;
     std::set<std::string> m_blacklist;
 };
 
