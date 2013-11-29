@@ -45,11 +45,11 @@ endfunc
 
 function! SetupEnvironment()
     " Get the file type of the buffer
-    let l:buftype = &filetype
+    let l:filename = expand('%:t')
 
-    if l:buftype == 'c' || l:buftype == 'h'
+    if l:filename =~ '\.c$' || l:filename =~ '\.h$'
         return SetupCEnvironment()
-    elseif l:buftype == 'java'
+    elseif l:filename =~ '\.java$'
         return SetupJavaEnvironment()
     endif
 endfunc
