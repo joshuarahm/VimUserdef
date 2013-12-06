@@ -28,7 +28,7 @@ void CTokenIterator::operator++() {
 
     for( ; i < to ; ++ i ) {
         char ch = m_parse_str[i];
-        if( m_in_quotes && ch == '\\' ) {
+        if( (m_in_quotes || m_in_sing_quotes) && ch == '\\' ) {
             // No questions asked
             m_cur_str += m_parse_str[i ++];
         } else {

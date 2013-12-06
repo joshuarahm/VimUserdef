@@ -3,12 +3,13 @@
 
 #include "Highlighter.hpp"
 #include <set>
+#include <algorithm>
 
 class CTokenIterator {
     public:
         inline CTokenIterator( const std::string& str ) :
               m_cur_str(""), m_parse_str( str ), m_offset(0)
-            , m_in_quotes(false), m_body(0), m_space(false) {
+            , m_in_quotes(false), m_body(0), m_space(false),m_in_sing_quotes(false) {
             this->operator++();
         }
 
@@ -27,18 +28,23 @@ class CTokenIterator {
         inline void p_UpdateForChar( char ch ) {
             switch ( ch ) {
             case '"':
-                m_in_quotes = ! m_in_quotes;
+                if ( ! m_in_sing_quotes )
+                    m_in_quotes = ! m_in_quotes;
+                break;
+            case '\'':
+                if ( ! m_in_quotes )
+                    m_in_sing_quotes = ! m_in_sing_quotes;
                 break;
             case '{':
-                if( ! m_in_quotes )
+                if( ! ( m_in_quotes || m_in_sing_quotes )  )
                     m_body ++;
                 break;
             case '}':
-                if( ! m_in_quotes )
+                if( ! (m_in_quotes || m_in_sing_quotes) )
                     m_body --;
                 break;
             case '#':
-                if( ! m_in_quotes )
+                if( ! (m_in_quotes || m_in_sing_quotes) )
                     m_in_hash = true;
                 break ;
             }
@@ -52,6 +58,7 @@ class CTokenIterator {
         int           m_body;
         bool          m_space; // used for consolidating whitespace
         bool          m_in_hash;
+        bool          m_in_sing_quotes ;
 };
 
 class CHighlighter : public Highlighter {
@@ -102,6 +109,15 @@ public:
     /* Run highlighting on a specific file */
     virtual void highlightFile( const std::string& filename );
 
+    static inline std::string &ltrim(std::string &s) {
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+            return s;
+    }
+
+    static inline std::string &rtrim(std::string &s) {
+            s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+            return s;
+    }
     /* Return the groups that are used to high
      * light */
     virtual inline const std::vector<std::string>& getHighlightKeywordGroups() const 
@@ -115,7 +131,9 @@ public:
 private:
     virtual void p_ParseToken( std::string& token ) ;
 
-    inline void p_AddTo( const std::string& str, std::set<std::string>& vec ) {
+    inline void p_AddTo( const std::string& a_str, std::set<std::string>& vec ) {
+        std::string str = a_str ;
+        rtrim( ltrim( str ) ) ;
         if( str.length() > 0 && m_blacklist.find( str ) == m_blacklist.end() )
             vec.insert( str );
     }
