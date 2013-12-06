@@ -67,7 +67,7 @@ function! DetectTypes( ... )
 
     let l:env = SetupEnvironment()
     let l:cmd = printf( "%s ~/.bin/vimuserdef %s > %s", l:env, l:file, l:tmpfile )
-    echo "Command: ".l:cmd
+    " echo "Command: ".l:cmd
     let l:output=system(l:cmd)
 
     exe 'source '.l:tmpfile
