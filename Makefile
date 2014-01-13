@@ -24,6 +24,9 @@ OBJECTS=obs/radiation.o obs/blocking_queue.o
 # The name of the library to produce
 SHARED_OBJECT=libvimradiation.so.1
 
+# The modules that are included in this build so
+# the makefile knows what to build
+
 # export some flags to tell the modules
 # what some of the configuration is
 export CC
@@ -33,9 +36,17 @@ all: setup modules $(OBJECTS)
 	$(CC) -shared -Wl,--whole-archive $(shell find . -name lib*.a ) \
 	  -Wl,--no-whole-archive,-soname,$(SHARED_OBJECT) -o $(SHARED_OBJECT) $(OBJECTS)
 
+# use a clever perl script to pick the modules
+# that we need to compile
+modules: INCLUDED_MODULES=$(shell perl -lne \
+	'if( $$_ =~ /INCLUDE_MODULE\(\s*(\w+)\s*\)/ ) { \
+		print "src/modules/$$1"\
+	}'\
+	src/modules/modules.inc)
+
 # Iterate and compile all of the modules
 modules:
-	for i in src/modules/* ; do \
+	for i in $(INCLUDED_MODULES) ; do \
 		if [[ -d $$i && -f $$i/Makefile ]] ; then \
 			cd $$i ;   \
 			make all ; \

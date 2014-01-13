@@ -11,12 +11,22 @@
  */
 
 #include "blocking_queue.h"
+#include <stdio.h>
 
 #define RADIATION_OK 0
 #define RADIATION_ENORADIATOR 1
 #define RADIATION_ENOINIT 2
 #define RADIATION_ETIMEOUT 3
 #define RADIATION_ENOARGS 4
+
+extern FILE* logfile ;
+
+#ifdef DEBUG
+#define lprintf( fmt, ... ) \
+	if( logfile ) { fprintf( logfile, fmt, ##__VA_ARGS__ ) ; fflush( logfile ) ; }
+#else
+#define lprintf( fmt, ... )
+#endif
 
 /* The types of elements to be
  * appended to the queue 

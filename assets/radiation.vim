@@ -4,7 +4,7 @@ function! Radiation_Init()
 pyfile assets/radiation.py
 
 " Initialize the library
-python init()
+python radiation_init()
 
 if exists('l:radiation_errormesg')
 	echoerr l:radiation_errormesg

@@ -23,8 +23,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "modules/modules.h"
+/* First we need to forward declare all of the modules
+ * units so we can reference them in this file */
+#define INCLUDE_MODULE( module ) \
+    int module##_init( void* arg ) ; \
+    extern radiator_t module##_radiator ;
+#include "modules/modules.inc"
 
+/* Some constants */
 #define RADIATION_ERROR_MESSAGE_LEN 1024
 #define RADIATION_MAX_COMMAND_LEN 1024
 
@@ -34,6 +40,10 @@
 #define vim_return( str, el ) \
 	const char* _tmp3293__ = (str) ; \
 	return _tmp3293__ == NULL ? el : _tmp3293__ ;
+
+/* the file that some debug logging will print to
+ * since stdout is consumed by vim */
+FILE* logfile = NULL ;
 
 /* value used in the array
  * of modules. Used to easily
@@ -53,6 +63,16 @@ struct module_inc_node {
     int (*init)( void* ) ;
 
 } ;
+
+
+/* Now we need to redefine the macro to fill
+ * the include array with modules */
+#undef INCLUDE_MODULE
+/* Definition of the macro to enable
+ * and include modules in the build */
+#define INCLUDE_MODULE( module ) \
+	/* { &module_radiator, "module", module_init }, */ \
+	{ &module##_radiator, #module, module##_init },
 
 /* The array of modules to include
  * in this compilation */
@@ -117,6 +137,9 @@ int radiation_init( ) {
     int i ;
     int ec ;
 
+    logfile = fopen("radiation_log.txt", "a+") ;
+    lprintf("Initializing Radiation\n") ;
+
 	g_registry = reg ;
 	g_is_initialized = 1 ;
 
@@ -132,10 +155,13 @@ int radiation_init( ) {
             /* register the file */
             radiation_register( g_enabled_modules[i].filetype,
                 g_enabled_modules[i].radiator ) ;
+
+            lprintf("loaded module for %s\n", g_enabled_modules[i].filetype) ;
         }
 
     }
 
+    lprintf("radiation initialized\n") ;
 	return g_error_code = RADIATION_OK;
 }
 
@@ -157,6 +183,8 @@ int radiation_get_error_code() {
 }
 
 int radiate( const char* filename, const char* filetype, const char* env ) {
+    lprintf( "Radiating new file %s, type %s, env %s\n", filename, filetype, env ) ;
+
 	if( ! g_is_initialized ) {
 		err_printf( "Library not initialized. Call vim_init first!" ) ;
 		return RADIATION_ENOINIT ;
@@ -203,11 +231,14 @@ const char* radiation_next() {
 		g_del_bucket = NULL ;
 	}
 
-	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 100000000000 ) != BQ_TIMEOUT ) {
+    lprintf("Taking from the blocking queue\n") ;
+	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 1000 ) == BQ_TIMEOUT ) {
 		err_printf( "Waiting for next timed out" ) ;
 		g_error_code = RADIATION_ETIMEOUT ;
 	} else{
+        lprintf("Took data %p\n", take) ;
         if( take != NULL ) {
+            lprintf("sy keyword %s %s\n", take->hgroup, take->keyword) ;
 		    snprintf(buf, RADIATION_MAX_COMMAND_LEN, "sy keyword %s %s", take->hgroup, take->keyword) ;
 		    g_del_bucket = strdup( buf ) ;
         }
@@ -218,6 +249,7 @@ const char* radiation_next() {
 	    free( take ) ;
     }
 
+    lprintf("Returning %s\n", g_del_bucket) ;
 	return g_del_bucket ;
 }
 
