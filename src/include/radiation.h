@@ -18,12 +18,28 @@
 #define RADIATION_ETIMEOUT 3
 #define RADIATION_ENOARGS 4
 
+/* The types of elements to be
+ * appended to the queue 
+ *
+ * This struct should be malloc'd
+ * because it will be deleted by the
+ * consumer */
 typedef struct {
 	/* the keyword to highlight */
+
+	/* This keyword should be
+	 * malloc'd on the stack to be
+	 * freed by the consumer thread
+	 */
 	char* keyword ;
 
 	/* the highlight group to use */
-	char* hgroup ;
+
+	/* This char* should NOT be malloc'd
+	 * as it will not be free'd by the
+	 * consumer thread */
+	const char* hgroup ;
+
 } queue_value_t ;
 
 /* The general struct RADIATOR is the

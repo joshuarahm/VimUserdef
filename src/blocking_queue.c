@@ -91,7 +91,7 @@ int blocking_queue_take( blocking_queue_t* queue, void** into, uint64_t timeout 
 		queue->_m_tail = NULL ;
 		millis_in_future( &ts, timeout );
 		/* wait for the queue to be filled again */
-		if( pthread_cond_timedwait( &queue->_m_condition, &queue->_m_mutex, &ts ) == ETIMEDOUT ) {
+		if( pthread_cond_wait( &queue->_m_condition, &queue->_m_mutex ) == ETIMEDOUT ) {
 			return BQ_TIMEOUT ;
 		}
 	}

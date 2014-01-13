@@ -1,3 +1,5 @@
+#ifndef BLOCKING_QUEUE_H_
+#define BLOCKING_QUEUE_H_
 
 #include <pthread.h>
 #include <inttypes.h>
@@ -33,3 +35,5 @@ void blocking_queue_add( blocking_queue_t* queue, void* data ) ;
  * an item comes
  */
 int blocking_queue_take( blocking_queue_t* queue, void** into, uint64_t timeout ) ;
+
+#endif

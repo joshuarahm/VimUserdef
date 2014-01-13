@@ -1,18 +1,29 @@
 #ifdef linux
 #include <bsd/sys/tree.h>
 #else
-#ifdef BSD
+
+#ifdef BSD || __APPLE___
 #include <sys/tree.h>
 #else
-#error Unable to compile for this system
+
+#ifdef TREE_H_PATH
+#include TREE_H_PATH
+#else
+/* can't compile for dozer yet :-( */
+#error Cannot find the tree.h file. If you know where it is, add a #define called TREE_H_PATH with the path of the file surrounded by quotes.
+
+#endif
 #endif
 #endif
 
+#define TEST radiation.h
 #include "radiation.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include "modules/modules.h"
 
 #define RADIATION_ERROR_MESSAGE_LEN 1024
 #define RADIATION_MAX_COMMAND_LEN 1024
@@ -23,6 +34,35 @@
 #define vim_return( str, el ) \
 	const char* _tmp3293__ = (str) ; \
 	return _tmp3293__ == NULL ? el : _tmp3293__ ;
+
+/* value used in the array
+ * of modules. Used to easily
+ * describe the modules to include */
+struct module_inc_node {
+
+    /* The radiator for the module to use.
+     * This is the central character of
+     * each module. */
+    radiator_t* radiator ;
+
+    /* The filetype to use this radiator for */
+    const char* filetype ;
+
+    /* The initialization routine this
+     * module uses to set itself up */
+    int (*init)( void* ) ;
+
+} ;
+
+/* The array of modules to include
+ * in this compilation */
+struct module_inc_node g_enabled_modules[] = {
+
+/* include the file that tells us the
+ * modules to include */
+#include    "modules/modules.inc"
+
+};
 
 struct treenode {
 	RB_ENTRY(treenode) entry;
@@ -73,9 +113,29 @@ struct REGISTRY g_registry ;
 
 int radiation_init( ) {
 	struct REGISTRY reg = RB_INITIALIZER( &reg ) ;
-	g_registry = reg ;
+    int until = sizeof( g_enabled_modules ) / sizeof( struct module_inc_node ) ;  
+    int i ;
+    int ec ;
 
+	g_registry = reg ;
 	g_is_initialized = 1 ;
+
+    for( i = 0 ; i < until ; ++ i ) {
+        
+        /* initialize the module */
+        ec = g_enabled_modules[i].init( NULL ) ;
+
+        if( ec != 0 ) {
+            fprintf( stderr, "Unable to load module for filetype: %s\n",
+                g_enabled_modules[i].filetype ) ;
+        } else {
+            /* register the file */
+            radiation_register( g_enabled_modules[i].filetype,
+                g_enabled_modules[i].radiator ) ;
+        }
+
+    }
+
 	return g_error_code = RADIATION_OK;
 }
 
@@ -135,7 +195,7 @@ const char* radiation_next() {
 		return NULL ;
 	}
 
-	queue_value_t* take ;
+	queue_value_t* take = NULL ;
 	char buf [ RADIATION_MAX_COMMAND_LEN ] ;
 
 	if( g_del_bucket ) {
@@ -143,17 +203,20 @@ const char* radiation_next() {
 		g_del_bucket = NULL ;
 	}
 
-	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 15 ) != BQ_TIMEOUT ) {
+	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 100000000000 ) != BQ_TIMEOUT ) {
 		err_printf( "Waiting for next timed out" ) ;
 		g_error_code = RADIATION_ETIMEOUT ;
 	} else{
-		snprintf(buf, RADIATION_MAX_COMMAND_LEN, "sy keyword %s %s", take->hgroup, take->keyword) ;
-		g_del_bucket = strdup( buf ) ;
+        if( take != NULL ) {
+		    snprintf(buf, RADIATION_MAX_COMMAND_LEN, "sy keyword %s %s", take->hgroup, take->keyword) ;
+		    g_del_bucket = strdup( buf ) ;
+        }
 	}
 
-	free( take->keyword ) ;
-	free( take->hgroup ) ;
-	free( take ) ;
+    if( take != NULL ) {
+	    free( take->keyword ) ;
+	    free( take ) ;
+    }
 
 	return g_del_bucket ;
 }

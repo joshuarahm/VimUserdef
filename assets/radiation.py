@@ -17,11 +17,11 @@ def init():
 	global radiation_lib
 
 	# load the library to be used
-	radiation_lib = cdll.LoadLibrary("libvimradiation.so.1")
+	radiation_lib = cdll.LoadLibrary("libvimradiation.so")
 
-	radiation_lib.radiation_init.restype = c_int
-	radiation_lib.radiate.restype        = c_int
-	radiation_lib.radiation_next.restype = c_char_p
+	radiation_lib.radiation_init.restype              = c_int
+	radiation_lib.radiate.restype                     = c_int
+	radiation_lib.radiation_next.restype              = c_char_p
 	radiation_lib.radiation_get_error_message.restype = c_char_p
 	# radiation_lib.radiation_get_error_code.restype    = c_int
 
@@ -56,7 +56,7 @@ def radiate( filename, filetype, env ):
 		# for us to pick each command off the queue
 		command = radiation_lib.radiation_next()
 
-		if command == c_char_p( 0 ) :
+		if command == None :
 			# if the call returned NULL, then we are done
 			break
 

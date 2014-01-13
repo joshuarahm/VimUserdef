@@ -1,8 +1,3 @@
-" Function that uses a Ruby script to
-" parse all C and H files in a directory
-" and sub directories to detect what new
-" types there are
-
 function! Radiation_Init()
 
 " Call the python file first of all to load the function definitions
