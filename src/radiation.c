@@ -108,6 +108,40 @@ char g_error_message [ RADIATION_ERROR_MESSAGE_LEN ] ;
 int  g_error_code = 0 ;
 int  g_is_initialized = 0 ;
 
+command_node_t* new_raw_command( const char* raw ) {
+    command_node_t* ret = calloc( sizeof( command_node_t ), 1 ) ;
+    ret->raw.raw = strdup(raw) ;
+    ret->type = COMMAND_RAW ;
+    return ret ;
+}
+
+command_node_t* new_raw_command_destr( char** raw ) {
+    command_node_t* ret = calloc( sizeof( command_node_t ), 1 ) ;
+    ret->raw.raw = *raw ;
+    ret->type = COMMAND_RAW ;
+    *raw = NULL ;
+    return ret ;
+}
+
+command_node_t* new_syndef_command( const char* keyword, const char* hgroup ) {
+    command_node_t* ret = malloc( sizeof( command_node_t ) ) ;
+    ret->syndef.keyword = strdup(keyword) ;
+    ret->syndef.hgroup = hgroup ;
+    ret->type = COMMAND_SYNDEF ;
+
+    return ret ;
+}
+
+command_node_t* new_syndef_command_destr( char** keyword, const char* hgroup ) {
+    command_node_t* ret = malloc( sizeof( command_node_t ) ) ;
+    ret->syndef.keyword = *keyword ;
+    ret->syndef.hgroup = hgroup ;
+    ret->type = COMMAND_SYNDEF ;
+    *keyword = NULL ;
+
+    return ret ;
+}
+
 static void* run_as_thread( void* args_ ) {
 	struct thread_args* args = (struct thread_args*)args_ ;
 
@@ -216,38 +250,93 @@ int radiate( const char* filename, const char* filetype, const char* env ) {
 	return g_error_code = RADIATION_OK ;
 }
 
+/* 
+ * deletes a command both. After
+ * this call the contents of command
+ * AS WELL AS the pointer itself
+ * will be free'd
+ */
+void delete_command( command_node_t* command ) {
+    if( ! command ) 
+        return ;
+
+    switch ( command->type ) {
+    case COMMAND_RAW:
+        free( command->raw.raw ) ;
+        break ;
+
+    case COMMAND_SYNDEF:
+        free( command->syndef.keyword ) ;
+        break ;
+    }
+
+    free( command ) ;
+}
+
 const char* radiation_next() {
+    /* check to make sure the library
+     * is initialized */
 	if( ! g_is_initialized ) {
 		err_printf( "Library not initialized. Call vim_init first!" ) ;
 		g_error_code = RADIATION_ENOINIT ;
 		return NULL ;
 	}
 
-	queue_value_t* take = NULL ;
+	command_node_t* take = NULL ;
 	char buf [ RADIATION_MAX_COMMAND_LEN ] ;
 
-	if( g_del_bucket ) {
-		free(g_del_bucket) ;
-		g_del_bucket = NULL ;
-	}
+    /* free the last command that was on
+     * the queue */
+	free(g_del_bucket) ;
+	g_del_bucket = NULL ;
 
     lprintf("Taking from the blocking queue\n") ;
+
+    /* try to pull something off of the queue.
+     * The way it extists now the plugin will
+     * wait a second for more data before a
+     * timout will occur */
 	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 1000 ) == BQ_TIMEOUT ) {
 		err_printf( "Waiting for next timed out" ) ;
 		g_error_code = RADIATION_ETIMEOUT ;
-	} else{
+	}
+
+    /* There is no timeout and we can process 
+     * the data that was returned */
+    else{
         lprintf("Took data %p\n", take) ;
-        if( take != NULL ) {
-            lprintf("sy keyword %s %s\n", take->hgroup, take->keyword) ;
-		    snprintf(buf, RADIATION_MAX_COMMAND_LEN, "sy keyword %s %s", take->hgroup, take->keyword) ;
-		    g_del_bucket = strdup( buf ) ;
+
+        if( take == NULL )  {
+            /* NULL marks EOF so
+             * lets do cleanup */
+            free(g_del_bucket) ;
+            g_del_bucket = NULL ;
+        }
+
+        else {
+
+            switch ( take->type ) {
+            
+            /* act differently for the different command
+             * types */
+            case COMMAND_SYNDEF:
+		        lprintf( "[syndef] - sy keyword %s %s\n", take->syndef.hgroup, take->syndef.keyword) ;
+		        snprintf(buf, RADIATION_MAX_COMMAND_LEN, "sy keyword %s %s", take->syndef.hgroup, take->syndef.keyword) ;
+		        g_del_bucket = strdup( buf ) ;
+                break ;
+
+            case COMMAND_RAW:
+                /* For a raw command, a simple assignment
+                 * will do */
+		        lprintf( "[raw] - %s\n", take->raw.raw) ;
+                g_del_bucket = take->raw.raw ;
+                take->raw.raw = NULL ;
+            }
+
+            delete_command( take ) ;
         }
 	}
 
-    if( take != NULL ) {
-	    free( take->keyword ) ;
-	    free( take ) ;
-    }
 
     lprintf("Returning %s\n", g_del_bucket) ;
 	return g_del_bucket ;
