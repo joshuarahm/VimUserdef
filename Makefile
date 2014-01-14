@@ -1,3 +1,6 @@
+#!/bin/bash
+
+SHELL=/bin/bash
 
 # The C compiler to use. Allows the user specify
 # the compiler on as an environment variable
