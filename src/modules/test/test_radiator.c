@@ -10,7 +10,7 @@ radiator_t test_radiator ;
 
 /* The main function that is used
  * to radiate a file */
-static int test_radiate_file(
+int test_radiate_file(
 
     /* All the test radiator does is use
      * the unix dictionary file to highlight
@@ -24,9 +24,36 @@ static int test_radiate_file(
     (void) filetype;
     (void) env;
 
-    FILE * dict = fopen ( "/usr/share/dict/cracklib-small", "r" ) ;
     size_t len ;
     char* word ;
+    int ec ;
+    ( void ) ec ;
+    FILE * dict ;
+
+    /* to show how the communication to Vim can work,
+     * this is how we can specify our own dictionary
+     * file in Vim and access it in this module */
+
+    /* The message struct is what is passed from the
+     * top layers */
+    message_t* mesg = NULL ;
+
+    /* query for the variable. The radiator struct
+     * is the means by which to communicate. */
+    ec = radiator_query_variable(ths, "radiation_test_dictfile", &mesg ) ;
+
+    if( mesg->type == MESSAGE_ERROR ) {
+        /* there was an error trying to open the file,
+         * so use the default */
+        lprintf("Using default dictionary.\n") ;
+        dict = fopen ( "testdic.txt", "r" ) ;
+    } else {
+        /* we could correctly get the variable so
+         * we can use the value */
+        lprintf("Using specified dictionary: %s\n", mesg->stringval.value) ;
+        dict = fopen ( mesg->stringval.value, "r" ) ;
+    }
+
 
     if( ! dict ) {
         lprintf("Unable to open dictionary.\n") ;
@@ -35,13 +62,8 @@ static int test_radiate_file(
 
     /* We can make a completely custom
      * command */
-    blocking_queue_add(
-        ths->data_queue,
-
-        /* This HAS to be a strdup, if it is not,
-         * bad things will happen */
-        new_raw_command( "hi RadiationTestWord ctermfg=45" )
-    ) ;
+    radiator_queue_command( ths,
+        new_raw_command("hi RadiationTestWord ctermfg=45")  ) ;
 
     while ( 1 ) {
         len = 10 ;
@@ -56,15 +78,14 @@ static int test_radiate_file(
         word[strlen(word)-1] = '\0' ;
 
         /* We can create a syndef command */
-        blocking_queue_add(
-            ths->data_queue,
+        radiator_queue_command( ths,
             new_syndef_command_destr( &word, "RadiationTestWord" )
         ) ;
     }
 
-    // /* we have to finish off with a NULL pointer to
-    //  * signal EOF */
-    blocking_queue_add( ths->data_queue, NULL ) ;
+    /* we have to finish off with a NULL pointer to
+     * signal EOF */
+    radiator_queue_command( ths, NULL ) ;
 
     return 0 ;
 }
@@ -73,13 +94,11 @@ static int test_radiate_file(
 int test_init( void* arg ) {
     (void) arg ;
 
+    init_radiator( &test_radiator, test_radiate_file );
+
     lprintf("Initialized test module.\n") ;
-
-    /* create a new blocking queue */
-    test_radiator.data_queue   = new_blocking_queue() ;
-    test_radiator.radiate_file = test_radiate_file ;
-
     /* Signal that we were able to initialize
      * the module properly */
-    return 0 ;
+    return RADIATION_OK ;
 };
+

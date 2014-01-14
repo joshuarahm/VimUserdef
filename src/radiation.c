@@ -1,22 +1,4 @@
-#ifdef linux
-#include <bsd/sys/tree.h>
-#else
-
-#ifdef BSD || __APPLE___
-#include <sys/tree.h>
-#else
-
-#ifdef TREE_H_PATH
-#include TREE_H_PATH
-#else
-/* can't compile for dozer yet :-( */
-#error Cannot find the tree.h file. If you know where it is, add a #define called TREE_H_PATH with the path of the file surrounded by quotes.
-
-#endif
-#endif
-#endif
-
-#define TEST radiation.h
+#include "tree.h"
 #include "radiation.h"
 
 #include <string.h>
@@ -145,7 +127,7 @@ command_node_t* new_syndef_command_destr( char** keyword, const char* hgroup ) {
 static void* run_as_thread( void* args_ ) {
 	struct thread_args* args = (struct thread_args*)args_ ;
 
-	g_current_radiator->radiate_file(
+	g_current_radiator->routine(
 		g_current_radiator, args->filename,
 		args->filetype, args->env ) ;
 
@@ -268,6 +250,10 @@ void delete_command( command_node_t* command ) {
     case COMMAND_SYNDEF:
         free( command->syndef.keyword ) ;
         break ;
+
+    case COMMAND_QUERY:
+        free( command->query.query ) ;
+        break ; 
     }
 
     free( command ) ;
@@ -296,7 +282,7 @@ const char* radiation_next() {
      * The way it extists now the plugin will
      * wait a second for more data before a
      * timout will occur */
-	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 1000 ) == BQ_TIMEOUT ) {
+	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 100 ) == BQ_TIMEOUT ) {
 		err_printf( "Waiting for next timed out" ) ;
 		g_error_code = RADIATION_ETIMEOUT ;
 	}
@@ -331,12 +317,20 @@ const char* radiation_next() {
 		        lprintf( "[raw] - %s\n", take->raw.raw) ;
                 g_del_bucket = take->raw.raw ;
                 take->raw.raw = NULL ;
+                break ;
+
+            case COMMAND_QUERY:
+                lprintf( "[query] - %s\n", take->query.query ) ;
+
+                /* a litte hack to signal a query */
+                snprintf( buf, RADIATION_MAX_COMMAND_LEN, "q:%s", take->query.query ) ;
+                g_del_bucket = strdup( buf ) ; 
+                break ;
             }
 
             delete_command( take ) ;
         }
 	}
-
 
     lprintf("Returning %s\n", g_del_bucket) ;
 	return g_del_bucket ;
@@ -344,4 +338,106 @@ const char* radiation_next() {
 
 const char* radiation_get_error_message( void ) {
 	return g_error_message ;
+}
+
+int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) {
+    rad->data_queue    = new_blocking_queue() ;
+    rad->message_queue = new_blocking_queue() ;
+    rad->routine  = routine ;
+    
+    return 0 ;
+}
+
+void message_delete( message_t* mesg ) {
+    if( mesg ) {
+        free( mesg->strval ) ;
+        free( mesg ) ;
+    }
+}
+
+void radiator_queue_command( radiator_t* radiator, command_node_t* node ) {
+    blocking_queue_add( radiator->data_queue, node ) ;
+}
+
+int radiator_read_message( radiator_t* radiator, uint64_t timeout, message_t** ret ) {
+    return blocking_queue_take( radiator->message_queue, (void**)ret, timeout ) ;
+}
+
+/* signals to the python code that we need to know
+ * the value of a variable before we can continue */
+int radiator_query_variable( radiator_t* rad, const char* var, message_t** ret ) {
+    command_node_t* command = malloc( sizeof( command_node_t* ) ) ;
+
+    command->type = COMMAND_QUERY ;
+    command->query.query = strdup(var) ;
+
+    /* put the query command on the queue
+     * for the python to get */
+    radiator_queue_command( rad, command ) ;
+
+    /* delete the old message */
+    message_delete( * ret ) ;
+
+    /* read the message with a 10 ms timeout */
+    return radiator_read_message( rad, 10, ret ) ;
+}
+
+char* radiator_query_variable_default( radiator_t* rad, const char* var, const char* def ) {
+    message_t* ret = NULL ;
+    char* mesg ;
+
+    if( radiator_query_variable( rad, var, &ret ) ) {
+        message_delete( ret ) ;
+        return strdup( def ) ; 
+    }
+
+    if( ret->type == MESSAGE_STRING_VALUE ) {
+        mesg = ret->strval ;
+        ret->strval = NULL ;
+    } else {
+        mesg = strdup( def ) ;
+    }
+
+    message_delete( ret ) ;
+
+    return mesg ;
+}
+
+int radiation_put_string_message( const char* message ) {
+    message_t* tmp = malloc( sizeof( message_t ) ) ;
+    lprintf("putting message: %s\n", message) ;
+
+    tmp->type = MESSAGE_STRING_VALUE ;
+
+    if( message ) {
+        tmp->stringval.value = strdup(message) ;
+    } else {
+        tmp->stringval.value = NULL ;
+    }
+
+    blocking_queue_add( g_current_radiator->message_queue, tmp ) ;
+
+    return 0 ;
+}
+
+int radiator_wait_digest( radiator_t* rad, uint64_t timeout ) {
+    return blocking_queue_wait_digest( rad->data_queue, timeout ) ;
+}
+
+int radiation_put_error_message( const char* message, int errorcode ) {
+    message_t* tmp = malloc( sizeof( message_t ) ) ;
+
+    tmp->type = MESSAGE_ERROR ;
+
+    if( message ) {
+        tmp->errorval.message = strdup(message) ;
+    } else {
+        tmp->errorval.message = NULL ;
+    }
+
+    tmp->errorval.code = errorcode ;;
+
+    blocking_queue_add( g_current_radiator->message_queue, tmp ) ;
+
+    return 0 ;
 }

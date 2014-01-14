@@ -38,7 +38,13 @@ extern FILE* logfile ;
 enum command_type {
 	  COMMAND_SYNDEF
 	, COMMAND_RAW
+    , COMMAND_QUERY
 };
+
+enum message_type {
+      MESSAGE_STRING_VALUE
+    , MESSAGE_ERROR
+} ;
 
 typedef struct {
 	/* the keyword to highlight */
@@ -65,9 +71,38 @@ typedef struct {
 			/* The raw command */
 			char* raw ;
 		} raw ;
+
+        struct {
+            /* The variable to query */
+            char* query ;
+        } query ;
 	} ;
 
 } command_node_t ;
+
+/* This struct is a part of the communicaiton
+ * that allows the library to obtain the value
+ * of a variable in vim */
+typedef struct {
+    
+    /* The type of response. */
+    enum message_type type ; 
+
+    union {
+        char* strval ;
+
+        struct {
+            /* returned if the value is a
+             * string value */
+            char* value ;
+        } stringval ;
+
+        struct {
+            char* message ;
+            int   code ;
+        } errorval ;
+    } ;
+} message_t ;
 
 /* Creates a new syntax defining command node.
  * 
@@ -105,30 +140,63 @@ command_node_t* new_raw_command( const char* raw ) ;
  */
 command_node_t* new_raw_command_destr( char** raw ) ;
 
+/* forward declare for typedef */
+struct RADIATOR ;
+
+typedef int (*radiate_file_routine_t)(struct RADIATOR*,const char*,const char*,const char*);
+
 /* The general struct RADIATOR is the
  * structure that holds all the information
  * for radiating a file */
 typedef struct RADIATOR {
 	/* a function that is used to radiate the
 	 * file provided */
-	int(*radiate_file)(
-		/* This highlighter */
-		struct RADIATOR* ths,
-
-		/* the filename to radiate */
-		const char* file,
-
-		/* filetype, as specified by
-		 * Vim */
-		const char* filetype,
-
-		/* The environment to use */
-		const char* env ) ;
+    radiate_file_routine_t routine ;
 
 	/* The queue that the radiate file function will eventually
 	 * start posting command_node_t structs to */
 	blocking_queue_t* data_queue ;
+    blocking_queue_t* message_queue ;
 } radiator_t ;
+
+/* initializes a radiator. */
+int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) ;
+
+/* Adds a command to the radiator's data queue to be processed by
+ * the client side */
+void radiator_queue_command( radiator_t* rad, command_node_t* node ) ;
+
+/* reads a message from the Vim server. This may be
+ * the response to a query value */
+int radiator_read_message( radiator_t* rad, uint64_t timeout, message_t** ret ) ;
+
+/*
+ * Queries Vim for the value of a variable, waits for
+ * the result and stores that result in `ret`.
+ * 
+ * When passed into this function, if *ret != NULL, it is free'd
+ * to make chaining operations more consise, so be careful
+ * when using the values repeatedly and be sure to ALWAYS
+ * initialize your message_t*'s to NULL
+ */
+int radiator_query_variable( radiator_t* rad, const char* var, message_t** ret ) ; 
+
+/*
+ * Wait for the Vim thread to digest some of the contents
+ * of the priority queue
+ */
+int radiator_wait_digest( radiator_t* rad, uint64_t timeout ) ;
+
+/*
+ * queries for a variable and if the result that comes
+ * back is an error return a the default value
+ *
+ * The result returned is either the correct string value
+ * or a strdup'd copy of the default value
+ */
+char* radiator_query_variable_default( radiator_t* rad, const char* var, const char* def ) ;
+
+void message_delete( message_t* mesg ) ;
 
 #ifdef __cplusplus
 extern "C" {
@@ -162,6 +230,13 @@ extern "C" {
 	
 	/* returns the error code */
 	int radiation_get_error_code( void ) ;
+
+    /* python-end communication to the library */
+    int radiation_put_string_message( const char* message ) ;
+
+    /* Puts an error message and error code to communicate
+     * excepive behavior to the lower layers */
+    int radiation_put_error_message( const char* message, int errorcode ) ;
 #ifdef __cplusplus
 }
 #endif

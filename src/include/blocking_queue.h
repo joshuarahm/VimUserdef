@@ -16,6 +16,8 @@ struct list {
 typedef struct {
 	pthread_mutex_t _m_mutex ;
 	pthread_cond_t _m_condition ;
+	pthread_cond_t _m_digest_condition ;
+
 	struct list* _m_head ;
 	struct list* _m_tail ;
 } blocking_queue_t ;
@@ -35,5 +37,14 @@ void blocking_queue_add( blocking_queue_t* queue, void* data ) ;
  * an item comes
  */
 int blocking_queue_take( blocking_queue_t* queue, void** into, uint64_t timeout ) ;
+
+/*
+ * Suspends the currently running thread by 
+ * waiting until the queue has been depleated
+ *
+ * If there is currently nothing is in the queue,
+ * then this function has no effect
+ */
+int blocking_queue_wait_digest( blocking_queue_t* queue, uint64_t timeout ) ;
 
 #endif
