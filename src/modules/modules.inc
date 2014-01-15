@@ -13,3 +13,4 @@
  * so to disable it, you may comment out this
  * file */
 INCLUDE_MODULE( test )
+INCLUDE_MODULE( c )
