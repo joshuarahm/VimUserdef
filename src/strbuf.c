@@ -12,10 +12,12 @@ ovector_t* new_ovector( int size ) {
 }
 
 strbuf_t* new_strbuf( size_t size ) {
-	strbuf_t* ret = malloc( sizeof( strbuf_t ) + size ) ;
+	strbuf_t* ret = malloc( sizeof( strbuf_t ) ) ;
 	
 	ret->total_size = size; 
 	ret->len = 0 ;
+
+    ret->buffer = malloc( size ) ;
 
 	return ret ;
 }
@@ -45,12 +47,13 @@ int ovector_first_match( ovector_t* ovector ) {
 	return ovector->ovector[0] ;
 }
 
-void strbuf_stream_regex7(
+void strbuf_stream_regex8(
     strbuf_t* buffer,
     ovector_t* vec,
     FILE* file,
-    const pcre* code,
-    const pcre_extra* extra,
+    const pcre** code,
+    const pcre_extra** extra,
+    size_t nres,
     int options,
     match_callback_t callback ) {
     
@@ -75,14 +78,14 @@ void strbuf_stream_regex7(
             }
 
             /* move the offset */
-            offset = off2 ;
+            offset = off2 + 1 ;
         } else {
 
             if( rc == PCRE_ERROR_PARTIAL ) {
                 /* There is a partial match, so
                 * we need to shift the buffer over */
                 offset = 0 ;
-                strbuf_cut_offset( buffer, file, vec->ovector[2 * i] ) ;
+                strbuf_cut_offset( buffer, file, vec->ovector[0] ) ;
             } else if( rc == PCRE_ERROR_NOMATCH ) {
                 /* there was not even a partial
                 * match, so replace the buffer */

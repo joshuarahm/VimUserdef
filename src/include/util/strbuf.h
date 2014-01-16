@@ -18,7 +18,7 @@ typedef struct {
 	int ovector[] ;
 } ovector_t ;
 
-typedef void (*match_callback_t)(const char* str, size_t strlen, int group);
+typedef void (*match_callback_t)(const char* str, size_t strlen, int pcre_idx, int group);
 
 /* Stream buffer struct. Used for
  * -realaively- easy and easy eiting
@@ -33,8 +33,8 @@ typedef struct strbuf {
      * the buffer */
 	size_t len ;
 
-	/* the array of characters */
-	char buffer[] ;
+    /* buffer */
+	char* buffer ;
 } strbuf_t ;
 
 
@@ -74,6 +74,16 @@ void strbuf_stream_regex7(
     FILE* tostream,
     const pcre* code,
     const pcre_extra* extra,
+    int options,
+    match_callback_t callback ) ;
+    
+void strbuf_stream_regex8(
+    strbuf_t* buffer,
+    ovector_t* vec,
+    FILE* tostream,
+    const pcre** code,
+    const pcre_extra** extra,
+    size_t nres,
     int options,
     match_callback_t callback ) ;
 

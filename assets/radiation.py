@@ -62,6 +62,7 @@ def radiate( filename, filetype, env ):
         # The radiator is hard at work, it is time
         # for us to pick each command off the queue
         command = radiation_lib.radiation_next()
+        log.write("read command: " + str(command) + "\n")
         log.flush()
 
         if command == None :
@@ -69,7 +70,6 @@ def radiate( filename, filetype, env ):
             break
     
         else:
-            log.write( command + "\n") ;
             if( command.startswith("q:") ):
                 # This is a query
                 var = command[2:]

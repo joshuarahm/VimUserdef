@@ -282,7 +282,7 @@ const char* radiation_next() {
      * The way it extists now the plugin will
      * wait a second for more data before a
      * timout will occur */
-	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 100 ) == BQ_TIMEOUT ) {
+	if( blocking_queue_take( g_current_radiator->data_queue, (void**)&take, 1000 ) == BQ_TIMEOUT ) {
 		err_printf( "Waiting for next timed out" ) ;
 		g_error_code = RADIATION_ETIMEOUT ;
 	}
