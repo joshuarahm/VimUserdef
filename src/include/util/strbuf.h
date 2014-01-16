@@ -18,6 +18,8 @@ typedef struct {
 	int ovector[] ;
 } ovector_t ;
 
+typedef void (*match_callback_t)(const char* str, size_t strlen, int group);
+
 /* Stream buffer struct. Used for
  * -realaively- easy and easy eiting
  * of streams.
@@ -27,18 +29,14 @@ typedef struct strbuf {
 	 * to the buffer */
 	size_t total_size ;
 
-	/* the total length of the string
-	 * held in buffer */
+    /* the length of the string held in
+     * the buffer */
 	size_t len ;
-
-	/* the number of bytes to roll
-	 * over from the last read to the
-	 * beginning */
-	size_t keep ;
 
 	/* the array of characters */
 	char buffer[] ;
 } strbuf_t ;
+
 
 /* creates a new ovector which may
  * be used to capture groups from the
@@ -49,24 +47,35 @@ ovector_t* new_ovector( int size ) ;
  * match */
 size_t ovector_matchlen( ovector_t* ovector ) ;
 
+/* returns the offset of the first match of
+ * the ovector */
 int ovector_first_match( ovector_t* ovector ) ;
 
 /* creates a new strbuf */
-strbuf_t* new_strbuf( size_t size, size_t keep ) ;
+strbuf_t* new_strbuf( size_t size ) ;
 
-/* reads as many bytes into strbuf as possible
- * returns the number of bytes read from the file */
+/* reads as much as possible into the strbuf
+ * from the file `file`. This completely replaces
+ * everything in the buffer */
 size_t strbuf_read( strbuf_t* buf, FILE* file ) ;
 
+/* mark the position in the buffer to save. This
+ * part will be retained in the buffer and
+ * the remaining will be filled by the file
+ *
+ * Returns the length of the string in the buffer after
+ * the operation.
+ */
 size_t strbuf_cut_offset( strbuf_t* buf, FILE* file, int offset ) ;
 
-/* returns the next string that the
- * ovector points to as a strdup'd
- * version of the string that must
- * be free'd */
-char* strbuf_next_capture( strbuf_t* buf, ovector_t* itr ) ;
-
-char* strbuf_get_capture( strbuf_t* buf, ovector_t* itr, size_t off ) ;
+void strbuf_stream_regex7(
+    strbuf_t* buffer,
+    ovector_t* vec,
+    FILE* tostream,
+    const pcre* code,
+    const pcre_extra* extra,
+    int options,
+    match_callback_t callback ) ;
 
 int strbuf_pcre_exec(
 	strbuf_t* buf,

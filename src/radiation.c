@@ -164,7 +164,7 @@ int radiation_init( ) {
         /* initialize the module */
         ec = g_enabled_modules[i].init( NULL ) ;
 
-        if( ec != 0 ) {
+        if( ec != RADIATION_OK ) {
             fprintf( stderr, "Unable to load module for filetype: %s\n",
                 g_enabled_modules[i].filetype ) ;
         } else {

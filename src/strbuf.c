@@ -11,57 +11,24 @@ ovector_t* new_ovector( int size ) {
 	return ret ;
 }
 
-strbuf_t* new_strbuf( size_t size, size_t keep ) {
-	strbuf_t* ret = malloc( sizeof( ovector_t ) + size + keep ) ;
+strbuf_t* new_strbuf( size_t size ) {
+	strbuf_t* ret = malloc( sizeof( strbuf_t ) + size ) ;
 	
-	ret->total_size = size + keep; 
+	ret->total_size = size; 
 	ret->len = 0 ;
-	ret->keep = keep ;
 
 	return ret ;
 }
 
 size_t strbuf_read( strbuf_t* buf, FILE* file ) {
-	int to_read = buf->len - buf->keep ;
-	return strbuf_cut_offset( buf, file, to_read ) ;
+    return buf->len = fread( buf->buffer, 1, buf->total_size, file ) ;
 }
 
-size_t strbuf_cut_offset( strbuf_t* buf, FILE* file, int to_read ) {
-	size_t ret ;
-	char* read = buf->buffer ;
-	int keep = buf->len - to_read ;
+size_t strbuf_cut_offset( strbuf_t* buf, FILE* file, int offset ) {
+    int len = buf->len - offset ;
+    strncpy( buf->buffer, buf->buffer + offset, len ) ;
 
-	if( keep > 0 ) {
-		read += keep;
-		strncpy( buf->buffer, buf->buffer + to_read, keep) ;
-	} else {
-		keep = 0 ;
-	}
-
-	ret = fread( read, to_read, 1, file ) ;
-	buf->len = ret + keep ;
-	return ret ;
-}
-
-char* strbuf_next_capture( strbuf_t* buf, ovector_t* itr ) {
-	return strbuf_get_capture( buf, itr, itr->itr ++ ) ;
-}
-
-char* strbuf_get_capture( strbuf_t* buf, ovector_t* itr, size_t off ) {
-	if( off >= itr->count ) {
-		return NULL ;
-	}
-
-	int off1 = itr->ovector[ off * 2 ] ;
-	int off2 = itr->ovector[ off * 2 + 1 ] ;
-
-	int len = off2 - off1 ;
-
-	if( ! len ) {
-		return NULL ;
-	}
-
-	return strndup( buf->buffer + off1, len ) ;
+    return buf->len = fread( buf->buffer + len, 1, buf->total_size - len, file ) + len ;
 }
 
 int strbuf_pcre_exec( strbuf_t* buf, const pcre* code,
@@ -76,4 +43,57 @@ size_t ovector_matchlen( ovector_t* ovector ) {
 
 int ovector_first_match( ovector_t* ovector ) {
 	return ovector->ovector[0] ;
+}
+
+void strbuf_stream_regex7(
+    strbuf_t* buffer,
+    ovector_t* vec,
+    FILE* file,
+    const pcre* code,
+    const pcre_extra* extra,
+    int options,
+    match_callback_t callback ) {
+    
+    /* return code */
+    int rc = 1;
+    int offset = 0 ;
+    int i, off1, off2 ;
+    strbuf_read( buffer, file );
+
+    while ( 1 ) {
+        /* execute the regular expression on
+         * the buffer */
+        rc = strbuf_pcre_exec( buffer, code, extra, offset, vec, options | PCRE_PARTIAL ) ;
+        if( rc > 0 ) {
+            for( i = 0 ; i < rc; ++ i ) {
+                /* There was a match. Iterate through
+                * the groups and call the callback */
+                off1 = vec->ovector[2 * i] ;
+                off2 = vec->ovector[2 * i + 1] ;
+    
+                callback( buffer->buffer + off1 , off2 - off1 , i ) ;
+            }
+
+            /* move the offset */
+            offset = off2 ;
+        } else {
+
+            if( rc == PCRE_ERROR_PARTIAL ) {
+                /* There is a partial match, so
+                * we need to shift the buffer over */
+                offset = 0 ;
+                strbuf_cut_offset( buffer, file, vec->ovector[2 * i] ) ;
+            } else if( rc == PCRE_ERROR_NOMATCH ) {
+                /* there was not even a partial
+                * match, so replace the buffer */
+                offset = 0 ;
+                if( strbuf_read( buffer, file ) <= 0 ) {
+                    /* if there is no more to read
+                    * from the stream, then exit */
+                    break ;
+                }
+            }
+
+        }
+    }
 }

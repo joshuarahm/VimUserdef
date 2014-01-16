@@ -11,6 +11,7 @@
 #else
 /* can't compile for dozer yet :-( */
 #error Cannot find the tree.h file. If you know where it is, add a #define called TREE_H_PATH with the path of the file surrounded by quotes.
+#error You may need to install libbsd if you are on a linux system
 
 #endif
 #endif

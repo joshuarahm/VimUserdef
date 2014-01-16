@@ -17,53 +17,27 @@ radiator_t c_radiator ;
 pcre* typedef_re ;
 pcre_extra* typedef_re_extra ;
 
-#define TYPEDEF_REGEX "typedef\\s+(.*)?\\s+(\\w+)\\s+;"
+#define IDENTIFIER "(?:\\w|_)(?:\\w|_|\\d)+"
+#define TYPEDEF_REGEX "typedef[^;]+\\s(" IDENTIFIER  ")\\s*;"
+
+static void c_match_callback( const char* str, size_t len, int group ) {
+    if( group == 1 ) {
+        lprintf("got typedef %.*s\n", (int)len, str) ;
+    } else {
+        lprintf("got group #%d %.*s\n", group, (int)len, str) ;
+    }
+}
 
 static void run_stream( radiator_t* ths, FILE* file ) {
-	char* capture ;
+    (void) ths ;
 
-	strbuf_t* buffer = new_strbuf( 4000, 100 ) ;
-	ovector_t* vector = new_ovector( 5 ) ;
+	strbuf_t* buffer = new_strbuf( 4096 ) ;
+	ovector_t* vector = new_ovector( 3 ) ;
 
-	size_t offset ;
-	int rc = 0 ;
-
-	/* while we can read more of the file
-	 * into the stream buffer */
-	while ( strbuf_read( buffer, file ) ) {
-		offset = 0 ;
-
-		/* match all the possible matches
-		 * that are currently in the buffer */
-		while( rc != PCRE_ERROR_NOMATCH ) {
-			/* execute the regular expression on
-			 * the buffer */
-			rc = strbuf_pcre_exec( buffer, typedef_re, typedef_re_extra,
-				offset, vector, PCRE_PARTIAL ) ;
-
-			if( rc == PCRE_ERROR_PARTIAL ) {
-				/* If there is a partial match but nothing else, then
-				 * we need to try to match on that, so shift the buffer
-				 * so the partial match is first */
-				strbuf_cut_offset( buffer, file, ovector_first_match( vector ) ) ;
-			} else if ( rc > 0 ) {
-
-				/* the second capture is what the typename
-				 * is to highlight */
-				capture = strbuf_get_capture( buffer, vector, 2 ) ;
-				lprintf("Found capture %s\n", capture) ;
-
-				/* Communicate the new command */
-				radiator_queue_command( ths,
-					new_syndef_command_destr( &capture, "RadiationCTypedef") ) ;
-
-				/* TODO Un hack this */
-				/* Set the offset so we can get the next
-				 * one */
-				offset = vector->ovector[1];
-			};
-		}
-	}
+    strbuf_stream_regex7(
+        buffer, vector, file,
+        typedef_re, typedef_re_extra,
+        0, c_match_callback ) ;
 
 	free( buffer ) ;
 	free( vector ) ;
@@ -102,7 +76,7 @@ int c_init( void* arg ) {
 	int   error_off ;
 	init_radiator( &c_radiator, c_radiate_file ) ;
 
-	typedef_re = pcre_compile(TYPEDEF_REGEX, PCRE_DOTALL, &error, &error_off, NULL) ;
+	typedef_re = pcre_compile(TYPEDEF_REGEX, PCRE_DOTALL | PCRE_MULTILINE , &error, &error_off, NULL) ;
 
 	if( ! typedef_re ) {
 		lprintf("There was an error compiling regex '%s' offset %d\n", error, error_off) ;
