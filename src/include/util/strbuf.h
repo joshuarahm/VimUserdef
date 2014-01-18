@@ -96,4 +96,5 @@ int strbuf_pcre_exec(
 	int options ) ;
 
 
+int strbuffer_delete( strbuf_t* buf ) ;
 #endif /* STRBUF_H_ */

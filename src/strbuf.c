@@ -29,7 +29,7 @@ size_t strbuf_read( strbuf_t* buf, FILE* file ) {
 size_t strbuf_cut_offset( strbuf_t* buf, FILE* file, int offset ) {
     int len = buf->len - offset ;
     if ( len > 0 ) {
-        strncpy( buf->buffer, buf->buffer + offset, len ) ;
+        memmove( buf->buffer, buf->buffer + offset, len ) ;
     } else {
         len = 0 ;
     }
@@ -163,4 +163,11 @@ void strbuf_stream_regex8(
     }
 
     free( info_arr );
+}
+
+int strbuffer_delete( strbuf_t* buf ) {
+    free( buf->buffer ) ;
+    free( buf ) ;
+
+    return 0 ;
 }

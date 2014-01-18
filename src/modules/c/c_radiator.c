@@ -11,40 +11,56 @@
 
 radiator_t c_radiator ;
 
+/* the following are some useful regexes
+ * to determine certian features */
 #define IDENTIFIER    "(?:\\w|_)(?:\\w|_|\\d)+"
 #define BODY          "\\{(?:[^{}]|(?0))*\\}"
+#define TYPENAME      "(?:const\\s+)?(?:(?:struct|enum)\\s+)*"IDENTIFIER
 
-// #define TYPEDEF_REGEX "(?:typedef(?:\\s+struct\\s+(" IDENTIFIER ")\\s*|[^;]+)(?:"BODY"\\s*|\\s+)(" IDENTIFIER  ")\\s*;)"
-#define TYPEDEF_REGEX "typedef[^;]+(?:"BODY"\\s*|\\s+)("IDENTIFIER")\\s*;"
-#define STRUCT_REGEX  "(?:struct\\s*(" IDENTIFIER ")\\s*[{;])"
-
-#define TOTAL_REGEX TYPEDEF_REGEX "|" STRUCT_REGEX
-
+/* get the length of a static array */
 #define LENGTH(x) (sizeof(x) / sizeof(x[0]))
 
 /* the types of highlighting we can
  * have for each group mapping */
 const char* c_typedef_groups[] = {
-    NULL,
-    "RadiationCTypedef"
+      NULL
+    , "RadiationCTypedef"
 };
 
 const char* c_struct_groups[] = {
-    NULL,
-    "RadiationCStruct"
+      NULL
+    , "RadiationCStruct"
 };
 
+const char* c_enum_groups[] = {
+      NULL
+    , "RadiationCEnum"
+};
+
+const char* c_function_groups[] = {
+      NULL
+    , "RadiationCFunction"
+};
+
+/* This is a rough mapping of (regex,group) to
+ * highlight type */
 const char** c_highlights[] = {
       c_typedef_groups
     , c_struct_groups
+    , c_enum_groups
+    , c_function_groups
 } ;
+
 
 const char* c_regexes[] = {
       /* typedef regex */
       "typedef[^;]+(?:" BODY "\\s*|\\s+)(" IDENTIFIER ")\\s*;"
-
       /* struct regex */
-    , "(?:struct\\s*(" IDENTIFIER ")\\s*[{;])"
+    , "struct\\s*(" IDENTIFIER ")\\s*[{;]"
+      /* enum regex */
+    , "enum\\s*(" IDENTIFIER ")\\s*[{;]"
+      /* function regex */
+    , "(?:static\\s+)?" TYPENAME "\\s+(" IDENTIFIER ")\\s*\\([^{;]*?"
 };
 
 
@@ -65,6 +81,8 @@ static void c_match_callback( const char* str, size_t len, int regex, int group 
     const char* highlight = c_highlights[regex][group] ;
 
     if( highlight ) {
+        /* Only add the highlight if the 
+         * keyword exists */
         char* keyword = strndup( str, len ) ;
     
         /* queue the new syndef */
@@ -87,7 +105,7 @@ static void run_stream( radiator_t* ths, FILE* file ) {
 
     radiator_queue_command( &c_radiator, NULL ) ;
 
-	free( buffer ) ;
+	strbuffer_delete( buffer ) ;
 	free( vector ) ;
 }
 
@@ -124,6 +142,11 @@ int c_init( void* arg ) {
 	int   error_off ;
     size_t   i ;
 	init_radiator( &c_radiator, c_radiate_file ) ;
+
+    if( LENGTH(c_highlights) < LENGTH(c_regexes) ) {
+        lprintf("The number of c regexes is greater than the number of highligts. This will cause a segmentation fault. Abort.") ;
+        return -1 ;
+    }
 
     for( i = 0 ; i < LENGTH(c_regexes); ++ i ) {
 	    c_pcre_arr[i] = pcre_compile(c_regexes[i], PCRE_DOTALL | PCRE_MULTILINE , &error, &error_off, NULL) ;;

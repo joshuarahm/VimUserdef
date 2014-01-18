@@ -366,7 +366,7 @@ int radiator_read_message( radiator_t* radiator, uint64_t timeout, message_t** r
 /* signals to the python code that we need to know
  * the value of a variable before we can continue */
 int radiator_query_variable( radiator_t* rad, const char* var, message_t** ret ) {
-    command_node_t* command = malloc( sizeof( command_node_t* ) ) ;
+    command_node_t* command = malloc( sizeof( command_node_t ) ) ;
 
     command->type = COMMAND_QUERY ;
     command->query.query = strdup(var) ;
