@@ -1,0 +1,23 @@
+*Radiation* Plugin to add extra highlighting to certain file types where the static highlighting
+Vim alone supplies is not enough.
+
+ 1. Installiation                             |radiation-installation|
+    1.1 Requirements for Linux                |radiation-linux|
+
+==========================================================================
+
+1. Installiation                              *radiation-installation*
+
+Radiation is currently only designed for Linux although Mac and BSD support will
+be tested shortly, and may already work out of the box. To install radiation the
+requrements are:
+
+ * Vim 7.4+ with +python
+ * libbsd
+ * pthreads
+
+In the future it may also become recommended to use a Vim server, but as of now 
+there is no need for it.
+
+Currently there is no support for Windows :-( because I am afraid to touch it, but
+the project is hosted on Github where any help is appreciated!
