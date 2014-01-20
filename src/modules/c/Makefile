@@ -23,11 +23,15 @@
 
 # Every module should have an all make rule. This will
 # be called by name from the top-level make file
-all: c_radiator.o
+all: c_radiator.o c_blacklist.o
 	$(AR) -r libcradiator.a $^
 
 # include all of the object files here
 c_radiator.o: c_radiator.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+# the blacklist for all the c reserved word
+c_blacklist.o: c_blacklist.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 # All Makefiles should contain a clean rule.

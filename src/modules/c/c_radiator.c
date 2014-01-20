@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include <stdio.h>
+#include "c_blacklist.h"
 
 radiator_t c_radiator ;
 
@@ -23,12 +24,14 @@ radiator_t c_radiator ;
 #define NAKED         "(?:" COMPLEX "|" PRIMATIVE "|"IDENTIFIER")"
 #define POINTER       "(?:(?:" NAKED ")(?:\\s*\\*\\s*)*)"
 #define FULL_TYPE     "(?:(?:const\\s+|volatile\\s+|static\\s+|extern\\s+)*" POINTER ")"
-#define TYPEDEF       "(?:typedef\\s+" FULL_TYPE "(?:\\s*(?:(" IDENTIFIER ")|\\(?:\\s*\\*\\s*("IDENTIFIER")\\))))"
-#define FUNCTION      "(?:static\\s+)?" FULL_TYPE "\\s*(" IDENTIFIER ")\\s*\\((?!\\s*\\*)[^{;]*?"
+#define TYPEDEF       "(?:typedef\\s+" FULL_TYPE "(?:\\s*(?:(" IDENTIFIER ")|\\(\\s*\\*\\s*("IDENTIFIER")\\))))"
+#define FUNCTION      "(?:static\\s+)?" FULL_TYPE "((?<=\\W)\\s*|\\s+)(" IDENTIFIER ")\\s*\\((?!\\s*\\*)[^{;]*?"
 
 typedef long unsigned test_t;
 /* get the length of a static array */
 #define LENGTH(x) (sizeof(x) / sizeof(x[0]))
+
+#include "c_reserved_header.h"
 
 /* the types of highlighting we can
  * have for each group mapping */
@@ -39,6 +42,7 @@ const char* c_typedef_groups[] = {
     , "RadiationCUnion"
     , "RadiationCEnum"
     , NULL 
+    , "RadiationCTypedef"
     , "RadiationCTypedef"
 };
 
@@ -57,24 +61,25 @@ const char* c_function_groups[] = {
     , NULL
     , NULL
     , NULL
+    , NULL
     , "RadiationCFunction"
 };
 
 /* This is a rough mapping of (regex,group) to
  * highlight type */
 const char** c_highlights[] = {
-        c_typedef_groups
-      , c_complex_groups
-      , c_function_groups
+      c_typedef_groups,
+      c_complex_groups,
+      c_function_groups,
 } ;
 
 
 const char* c_regexes[] = {
       /* typedef regex */
-        TYPEDEF
-      , COMPLEX
+      TYPEDEF,
+      COMPLEX,
       /* function regex */
-      , FUNCTION
+      FUNCTION,
 };
 
 
@@ -99,9 +104,14 @@ static void c_match_callback( const char* str, size_t len, int regex, int group 
          * keyword exists */
         char* keyword = strndup( str, len ) ;
     
-        /* queue the new syndef */
-        radiator_queue_command( &c_radiator,
-            new_syndef_command_destr( &keyword, highlight ) ) ;
+        if( ! blacklist_contains( keyword ) ) {
+            /* queue the new syndef */
+            lprintf("Queue: %s %s\n", highlight, keyword ) ;
+            radiator_queue_command( &c_radiator,
+                new_syndef_command_destr( &keyword, highlight ) ) ;
+        } else {
+            free( keyword ) ;
+        }
     }
 }
 
@@ -156,6 +166,7 @@ int c_init( void* arg ) {
 	int   error_off ;
     size_t   i ;
 	init_radiator( &c_radiator, c_radiate_file ) ;
+    blacklist_init( c_reserved_words ) ;
 
     if( LENGTH(c_highlights) < LENGTH(c_regexes) ) {
         lprintf("The number of c regexes is greater than the number of highligts. This will cause a segmentation fault. Abort.") ;
@@ -181,4 +192,3 @@ int c_init( void* arg ) {
 	return RADIATION_OK ;
 }
 
-TYPEDEF
