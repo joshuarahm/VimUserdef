@@ -93,7 +93,13 @@ static int strbuf_exhaust( strbuf_t* buffer, ovector_t* vec,
             if( rc == PCRE_ERROR_PARTIAL ) {
                 /* this is a partial match and we should
                  * communicate that */
-                info->rel_pointer = vec->ovector[0] ;
+                if( vec->ovector[0] == 0 ) {
+                    /* we have to take this one for a loss */
+                    info->rel_pointer = buffer->total_size ;
+                    return -1 ;
+                } else {
+                    info->rel_pointer = vec->ovector[0] ;
+                }
                 return 0 ;
             } else if( rc == PCRE_ERROR_NOMATCH ) {
                 /* we do not have a match at all,
