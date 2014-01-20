@@ -46,7 +46,9 @@ the state of the code at compilation.
 	now the threadding use is minimal; however, it is possible to do parallel
 	parsing to increase the speed phenominally. (You'll probably see a branch
 	for this soon)
+
 ## Why not use Radiation?
+
 1. Radiation is still in alpha.
 	* Since Radiation is a shared library in its alpha versions, C-ish type
 	problems now pose a threat to Vim, such as segmentation faults and memory
@@ -149,3 +151,9 @@ There will be many more of these once there is support for more languages.
 4. `bsd/sys/tree.h` not found.
 	* Either install libbsd or download BSD's tree.h and use the compiler flag
 	`-DTREE_H_PATH=\"<path/to/tree.h>\"`
+5. I want Java support!
+	* Relax, it's next on the list.
+		* But I want it now
+			* The legacy branch of Radiation contains a highlighter for Java,
+			but this branch is no longer supported, but if you want to use it,
+			good luck!
