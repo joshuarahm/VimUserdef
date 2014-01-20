@@ -1,5 +1,6 @@
 #include "util/strbuf.h"
 #include <string.h>
+#include "radiation.h"
 
 ovector_t* new_ovector( int size ) {
 	if( size <= 0 ) 
@@ -71,7 +72,7 @@ static int strbuf_exhaust( strbuf_t* buffer, ovector_t* vec,
     int offset = 0 ;
     int i, off1, off2 ;
 
-    while ( 1 ) {
+    while ( offset < buffer->len ) {
         /* execute the regular expression on
          * the buffer */
         rc = strbuf_pcre_exec( buffer, info->regex, info->extra, offset, vec, options | PCRE_PARTIAL ) ;
@@ -101,8 +102,13 @@ static int strbuf_exhaust( strbuf_t* buffer, ovector_t* vec,
                 return -1 ;
             }
 
+			lprintf("PCRE unhandled error! Code: %d\n", rc) ;
+            info->rel_pointer = buffer->total_size ;
+			return -1 ;
         }
     }
+    info->rel_pointer = buffer->total_size ;
+	return -1 ;
 }
 
 void strbuf_stream_regex8(

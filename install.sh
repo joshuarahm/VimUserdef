@@ -12,7 +12,7 @@ if [ ! $LIB_PREFIX ] ; then
 fi
 
 $SUDO cp -v libvimradiation.so.* /tmp/ &&
-$SUDO rm -rf $LIB_PREFIX/libvimradiation.so.* &&
+$SUDO rm -rfi $LIB_PREFIX/libvimradiation.so.* &&
 $SUDO mv -v /tmp/libvimradiation.so.* $LIB_PREFIX/ &&
 $SUDO ln -svf $LIB_PREFIX/libvimradiation.so.* $LIB_PREFIX/libvimradiation.so
 $SUDO chmod -v 755 $LIB_PREFIX/libvimradiation.so.*

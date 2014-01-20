@@ -13,10 +13,20 @@ radiator_t c_radiator ;
 
 /* the following are some useful regexes
  * to determine certian features */
-#define IDENTIFIER    "(?:\\w|_)(?:\\w|_|\\d)+"
-#define BODY          "\\{(?:[^{}]|(?0))*\\}"
-#define TYPENAME      "(?:const\\s+)?(?:(?:struct|enum)\\s+)*"IDENTIFIER
+#define IDENTIFIER    "(?:[a-zA-Z]|_)(?:\\w|_)*"
+#define BODY(group)   "(?:\\{(?:[^{}]|(?"group"))*\\})"
 
+#define INT_CHAR      "(?:(?:signed|unsigned|long|short)\\s+)*(?:signed|unsigned|long|short|int|char)"
+#define DOUBLE_FLOAT  "(?:(?:long\\s+)?double|float)"
+#define PRIMATIVE     "(?:" DOUBLE_FLOAT "|" INT_CHAR "|void)"
+#define COMPLEX       "(?:(struct(?:\\s+("IDENTIFIER"))?|union(?:\\s+("IDENTIFIER"))?|enum(?:\\s+("IDENTIFIER"))?)(?:\\s*("BODY("5")"))?)"
+#define NAKED         "(?:" COMPLEX "|" PRIMATIVE "|"IDENTIFIER")"
+#define POINTER       "(?:(?:" NAKED ")(?:\\s*\\*\\s*)*)"
+#define FULL_TYPE     "(?:(?:const\\s+|volatile\\s+|static\\s+|extern\\s+)*" POINTER ")"
+#define TYPEDEF       "(?:typedef\\s+" FULL_TYPE "(?:\\s*(?:(" IDENTIFIER ")|\\(?:\\s*\\*\\s*("IDENTIFIER")\\))))"
+#define FUNCTION      "(?:static\\s+)?" FULL_TYPE "\\s*(" IDENTIFIER ")\\s*\\((?!\\s*\\*)[^{;]*?"
+
+typedef long unsigned test_t;
 /* get the length of a static array */
 #define LENGTH(x) (sizeof(x) / sizeof(x[0]))
 
@@ -24,43 +34,47 @@ radiator_t c_radiator ;
  * have for each group mapping */
 const char* c_typedef_groups[] = {
       NULL
+    , NULL
+    , "RadiationCStruct"
+    , "RadiationCUnion"
+    , "RadiationCEnum"
+    , NULL 
     , "RadiationCTypedef"
 };
 
-const char* c_struct_groups[] = {
+const char* c_complex_groups[] = {
       NULL
+    , NULL
     , "RadiationCStruct"
-};
-
-const char* c_enum_groups[] = {
-      NULL
+    , "RadiationCUnion"
     , "RadiationCEnum"
 };
 
 const char* c_function_groups[] = {
       NULL
+    , NULL
+    , NULL
+    , NULL
+    , NULL
+    , NULL
     , "RadiationCFunction"
 };
 
 /* This is a rough mapping of (regex,group) to
  * highlight type */
 const char** c_highlights[] = {
-      c_typedef_groups
-    , c_struct_groups
-    , c_enum_groups
-    , c_function_groups
+        c_typedef_groups
+      , c_complex_groups
+      , c_function_groups
 } ;
 
 
 const char* c_regexes[] = {
       /* typedef regex */
-      "typedef[^;]+(?:" BODY "\\s*|\\s+)(" IDENTIFIER ")\\s*;"
-      /* struct regex */
-    , "struct\\s*(" IDENTIFIER ")\\s*[{;]"
-      /* enum regex */
-    , "enum\\s*(" IDENTIFIER ")\\s*[{;]"
+        TYPEDEF
+      , COMPLEX
       /* function regex */
-    , "(?:static\\s+)?" TYPENAME "\\s+(" IDENTIFIER ")\\s*\\([^{;]*?"
+      , FUNCTION
 };
 
 
@@ -95,7 +109,7 @@ static void run_stream( radiator_t* ths, FILE* file ) {
     (void) ths ;
 
 	strbuf_t* buffer = new_strbuf( 4096 ) ;
-	ovector_t* vector = new_ovector( 3 ) ;
+	ovector_t* vector = new_ovector( 10 ) ;
 
     strbuf_stream_regex8(
         buffer, vector, file,
@@ -166,3 +180,5 @@ int c_init( void* arg ) {
 	lprintf("Initialized c module.\n") ;
 	return RADIATION_OK ;
 }
+
+TYPEDEF

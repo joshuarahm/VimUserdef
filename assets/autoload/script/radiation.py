@@ -42,7 +42,7 @@ def radiation_init():
     # radiation lib successfully initialized
     
 def radiate( filename, filetype, env ):
-    # log = open("/tmp/pylog", "w") 
+    log = open("/tmp/pylog", "w") 
     
     # make the library call to radiate. This will
     # set us up to iterate across all the commands
@@ -62,8 +62,8 @@ def radiate( filename, filetype, env ):
         # The radiator is hard at work, it is time
         # for us to pick each command off the queue
         command = radiation_lib.radiation_next()
-        # log.write("read command: " + str(command) + "\n")
-        # log.flush()
+        log.write("read command: " + str(command) + "\n")
+        log.flush()
 
         if command == None :
             # if the call returned NULL, then we are done
