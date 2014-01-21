@@ -25,4 +25,11 @@ FILE* spawn_oevp ( const char* file, char *const argv[]  ) ;
  * commands! */
 int spawn_waitvp( const char* file, char *const argv[], int options ) ;
 
+/* reads into the char buffer out ; returns the exit code or
+ *  
+ * ec 3294 = exec failed
+ * ec 3293 = other failed
+ */
+int spawn_wait_outvp( const char* file, char *const argv[], char* out, size_t len ) ;
+
 #endif /* SUBPROCESS_H_ */

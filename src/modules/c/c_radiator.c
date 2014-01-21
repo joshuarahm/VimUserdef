@@ -108,7 +108,7 @@ static void c_match_callback( const char* str, size_t len, int regex, int group 
         if( ! blacklist_contains( keyword ) ) {
             /* queue the new syndef */
             lprintf("Queue: %s %s\n", highlight, keyword ) ;
-            radiator_queue_command( &c_radiator,
+            c_radiator.queue( &c_radiator, 
                 new_syndef_command_destr( &keyword, highlight ) ) ;
         } else {
             free( keyword ) ;
@@ -128,7 +128,7 @@ static void run_stream( radiator_t* ths, FILE* file ) {
         (const pcre_extra**)c_pcre_extra_arr, LENGTH(c_regexes),
         0, c_match_callback ) ;
 
-    radiator_signal_end( &c_radiator, RADIATION_OK ) ;
+    c_radiator.finished( &c_radiator, RADIATION_OK ) ;
 
 	strbuffer_delete( buffer ) ;
 	free( vector ) ;
@@ -137,7 +137,7 @@ static void run_stream( radiator_t* ths, FILE* file ) {
 void c_error_callback( radiator_t* radiator, const char* error ) {
     lprintf("Recieved error message: %s\n", error) ;
     /* Something came out of stderr. Give the error to Vim */
-    radiator_post_error_message( radiator, error ) ;
+    radiator->error( radiator, error ) ;
 }
 
 static int c_radiate_file(
@@ -150,20 +150,19 @@ static int c_radiate_file(
 	(void) filetype ;
 
     /* Get variables needed to compile */
-	char* c_compiler = radiator_query_variable_default( ths, "radiation_c_compiler", "gcc" ) ;
-	char* c_flags    = radiator_query_variable_default( ths, "radiation_c_cflags", "" ) ;
-    
-	FILE* proc ;
+	char* c_compiler = ths->query( ths, "radiation_c_compiler", "gcc" ) ;
+	char* c_flags    = ths->query( ths, "radiation_c_cflags", "" ) ;
 
 	char buffer[ 4096 ] ;
 	/* create the command and run the popen */
 	snprintf( buffer, 4096, "%s %s -E %s", c_compiler, c_flags, filename ) ;
 
+	FILE* proc ;
 	proc = run_process( buffer, (error_callback_t)c_error_callback, &c_radiator ) ;
 
     if( ! proc ) {
         reprintf(&c_radiator, "Error running process: %s\n", strerror( errno ) ) ;
-        radiator_signal_end( &c_radiator, RADIATION_ECANTRUN ) ;
+        c_radiator.finished( &c_radiator, RADIATION_ECANTRUN ) ;
     } else {
 	    run_stream( ths, proc ) ;
         fclose( proc ) ;

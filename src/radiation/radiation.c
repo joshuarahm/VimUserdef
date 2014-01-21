@@ -2,6 +2,9 @@
 #include "radiation.h"
 #include "util/subprocess.h"
 
+#include "impl/sequentialimpl.h"
+#include "impl/serverimpl.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -356,19 +359,39 @@ const char* radiation_get_error_message( void ) {
 	return g_error_message ;
 }
 
-int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) {
-    rad->data_queue    = new_blocking_queue() ;
-    rad->message_queue = new_blocking_queue() ;
-    rad->routine  = routine ;
-    
-    return 0 ;
-}
-
 void message_delete( message_t* mesg ) {
     if( mesg ) {
         free( mesg->strval ) ;
         free( mesg ) ;
     }
+}
+
+int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) {
+    rad->data_queue    = new_blocking_queue() ;
+    rad->message_queue = new_blocking_queue() ;
+    rad->routine  = routine ;
+
+	if( g_servername == NULL ) {
+		/* There is no server enabled so we need
+		 * to use the sequential interface */
+		rad->error = _vim_sequential_post_error ;
+		rad->error_destr = _vim_sequential_error_destr ;
+		rad->query = _vim_sequential_query ;
+		rad->finished = _vim_sequential_finish ;
+		rad->queue = _vim_sequential_queue_command ;
+		rad->read = _vim_sequential_read_message ;
+	} else {
+		/* We have a server enabled, so we should
+		 * use the server interface */
+		rad->error = _vim_server_post_error ;
+		rad->error_destr = _vim_server_error_destr ;
+		rad->query = _vim_server_query ;
+		rad->finished = _vim_server_finish ;
+		rad->queue = _vim_server_queue_command ;
+		rad->read = _vim_server_read_message ;
+	}
+    
+    return 0 ;
 }
 
 void radiator_queue_command( radiator_t* radiator, command_node_t* node ) {
@@ -436,10 +459,6 @@ int radiation_put_string_message( const char* message ) {
     return 0 ;
 }
 
-int radiator_wait_digest( radiator_t* rad, uint64_t timeout ) {
-    return blocking_queue_wait_digest( rad->data_queue, timeout ) ;
-}
-
 int radiation_put_error_message( const char* message, int errorcode ) {
     message_t* tmp = malloc( sizeof( message_t ) ) ;
 
@@ -458,29 +477,12 @@ int radiation_put_error_message( const char* message, int errorcode ) {
     return 0 ;
 }
 
-int radiator_post_error_message( radiator_t* rad, const char* error ) {
-    char* tmp = strdup( error ) ;
-    return radiator_post_error_message_destr( rad, &tmp ) ;
-}
-
-int radiator_post_error_message_destr( radiator_t* rad, char** error ) {
-    command_node_t* command_node = calloc( sizeof(command_node_t), 1 ) ;
-
-    command_node->type = COMMAND_ERROR ;
-    command_node->error.error = *error ; 
-    *error = NULL ;
-
-    radiator_queue_command( rad, command_node ) ;
-
-    return 0 ;
-}
-
 void reprintf( radiator_t* rad, const char* fmt, ... ) {
     va_list ap ;
     va_start( ap, fmt ) ;
     char buffer[1024] ;
     vsnprintf( buffer, sizeof(buffer), fmt, ap ) ;
-    radiator_post_error_message( rad, buffer ) ;
+    rad->error( rad, buffer ) ;
 }
 
 int radiation_set_servername( const char* servername ) {
@@ -490,6 +492,31 @@ int radiation_set_servername( const char* servername ) {
     }
 
     return RADIATION_OK ;
+}
+
+char* radiation_server_call( char** argv, size_t len, int* ret ) {
+	size_t i ;
+	char executable[1024] ;
+	char output[4096] ;
+	char** args = calloc( len + 4, sizeof(char*) ) ;
+
+    if( g_servername ) {
+    	readlink("/proc/self/exe", executable, sizeof(executable));
+		args[0] = executable ;
+		args[1] = "--servername" ;
+		args[2] = g_servername ;
+		for( i = 0 ; i < len ; ++ i ) {
+			args[i + 3] = argv[i] ;
+		}
+		args[i] = NULL ;
+
+		output[0] = 0;
+		*ret = spawn_wait_outvp( executable, args, output, sizeof(output) ) ;
+		return output[0] == 0 ? NULL : strdup( output ) ;
+	}
+
+	*ret = -1 ;
+	return NULL ;
 }
 
 int radiation_call_digest( ) {

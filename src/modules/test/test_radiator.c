@@ -34,26 +34,9 @@ int test_radiate_file(
      * this is how we can specify our own dictionary
      * file in Vim and access it in this module */
 
-    /* The message struct is what is passed from the
-     * top layers */
-    message_t* mesg = NULL ;
-
     /* query for the variable. The radiator struct
      * is the means by which to communicate. */
-    ec = radiator_query_variable(ths, "radiation_test_dictfile", &mesg ) ;
-
-    if( mesg->type == MESSAGE_ERROR ) {
-        /* there was an error trying to open the file,
-         * so use the default */
-        lprintf("Using default dictionary.\n") ;
-        dict = fopen ( "testdic.txt", "r" ) ;
-    } else {
-        /* we could correctly get the variable so
-         * we can use the value */
-        lprintf("Using specified dictionary: %s\n", mesg->stringval.value) ;
-        dict = fopen ( mesg->stringval.value, "r" ) ;
-    }
-
+    dict = fopen(ths->query(ths, "radiation_test_dictfile", "testdic.txt" ), "r");
 
     if( ! dict ) {
         lprintf("Unable to open dictionary.\n") ;
@@ -62,7 +45,7 @@ int test_radiate_file(
 
     /* We can make a completely custom
      * command */
-    radiator_queue_command( ths,
+	ths->queue( ths,
         new_raw_command("hi RadiationTestWord ctermfg=45")  ) ;
 
     while ( 1 ) {
@@ -78,14 +61,14 @@ int test_radiate_file(
         word[strlen(word)-1] = '\0' ;
 
         /* We can create a syndef command */
-        radiator_queue_command( ths,
+        ths->queue( ths,
             new_syndef_command_destr( &word, "RadiationTestWord" )
         ) ;
     }
 
     /* we have to finish off with a NULL pointer to
      * signal EOF */
-    radiator_queue_command( ths, NULL ) ;
+    ths->finished( ths, RADIATION_OK );
 
     return 0 ;
 }

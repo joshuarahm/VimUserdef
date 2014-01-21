@@ -166,69 +166,46 @@ typedef struct RADIATOR {
 	 * start posting command_node_t structs to */
 	blocking_queue_t* data_queue ;
     blocking_queue_t* message_queue ;
+
+    /* post an error message to Vim */
+    int   (*error)( struct RADIATOR* ths, const char* error ) ;
+    /* 
+     * Just like the above, except that the string is not strdup'd
+     * so this function will take control of the error pointer using
+     * double pointer notation.
+     */
+    int   (*error_destr)( struct RADIATOR* ths, char** error );
+
+    /*
+    * Queries Vim for the value of a variable, waits for
+    * the result and stores that result in `ret`.
+    * 
+    * When passed into this function, if *ret != NULL, it is free'd
+    * to make chaining operations more consise, so be careful
+    * when using the values repeatedly and be sure to ALWAYS
+    * initialize your message_t*'s to NULL
+    */
+    char* (*query)( struct RADIATOR* ths, const char* variable, const char* def ) ;
+
+    /* signal the end of the radiation */
+    void  (*finished)( struct RADIATOR* ths, int success ) ;
+
+    /* Adds a command to the radiator's data queue to be processed by
+     * the client side */
+    void (*queue)( struct RADIATOR* ths, command_node_t* node ) ;
+
+    /* reads a message from the Vim server. This may be */
+    int  (*read)( struct RADIATOR* ths, uint64_t timeout, message_t** ret ) ;
+
 } radiator_t ;
 
 /* initializes a radiator. */
 int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) ;
 
-/* Adds a command to the radiator's data queue to be processed by
- * the client side */
-void radiator_queue_command( radiator_t* rad, command_node_t* node ) ;
-
-/* reads a message from the Vim server. This may be
- * the response to a query value */
-int radiator_read_message( radiator_t* rad, uint64_t timeout, message_t** ret ) ;
-
-/*
- * Queries Vim for the value of a variable, waits for
- * the result and stores that result in `ret`.
- * 
- * When passed into this function, if *ret != NULL, it is free'd
- * to make chaining operations more consise, so be careful
- * when using the values repeatedly and be sure to ALWAYS
- * initialize your message_t*'s to NULL
- */
-int radiator_query_variable( radiator_t* rad, const char* var, message_t** ret ) ; 
-
-/*
- * Wait for the Vim thread to digest some of the contents
- * of the priority queue
- */
-int radiator_wait_digest( radiator_t* rad, uint64_t timeout ) ;
-
-/*
- * queries for a variable and if the result that comes
- * back is an error return a the default value
- *
- * The result returned is either the correct string value
- * or a strdup'd copy of the default value
- */
-char* radiator_query_variable_default( radiator_t* rad, const char* var, const char* def ) ;
-
-/* 
- * Posts an error message to Vim. The string is 
- * strdup'd and posted on the queue.
- */
-int radiator_post_error_message( radiator_t* rad, const char* error) ;
-
 /*
  * A printf-like frontend to radiator_post_error_message
  */
 void reprintf( radiator_t* rad, const char* fmt, ... ) ;
-
-/* 
- * Just like the above, except that the string is not strdup'd
- * so this function will take control of the error pointer using
- * double pointer notation.
- */
-int radiator_post_error_message_destr( radiator_t* rad, char** error) ;
-
-/*
- * Communicates that the radiation is finished and returns NULL
- * on the command queue and ivokes an asyncronous command to the
- * server if it exists and the success flag is RADIATION_OK.
- */
-void radiator_signal_end( radiator_t* rad, int success ) ;
 
 /*
  * If Vim is running in a server environment, it is possible to
@@ -236,6 +213,13 @@ void radiator_signal_end( radiator_t* rad, int success ) ;
  * priority queue.
  */
 int radiation_call_digest( ) ;
+
+/* 
+ * Makes a call to the server and returns
+ * the stdout output and places the exit code
+ * in `ret`
+ */
+char* radiation_server_call( char** argv, size_t len, int* ret ) ;
 
 /*
  * frees the memory for a message

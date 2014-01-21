@@ -126,3 +126,29 @@ int spawn_waitvp( const char* file, char *const argv[], int options ) {
 
     return ret ;
 }
+
+int spawn_wait_outvp( const char* file, char *const argv[], char* out, size_t len ) {
+	int outp[2] ;
+	int ret ;
+
+	if( pipe( outp ) ) {
+		return 3293 ;
+	}
+
+	pid_t child ;
+	if( (child = fork()) == 0 ) {
+		dup2( outp[1], STDOUT_FILENO ) ;
+		close( outp[0] ) ;
+	
+		execv( file, argv ) ;
+		exit( 3294 ) ;
+	} else {
+		close( outp[1] ) ;
+		read( outp[0], out, len ) ;
+		close( outp[0] ) ;
+
+		waitpid( child, &ret, 0 ) ;
+
+		return ret ;
+	}
+}

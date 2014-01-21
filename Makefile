@@ -18,11 +18,11 @@ AR?=ar
 OPTFLAGS?=-g3 -ggdb
 
 # The flags to compile C files with. 
-CFLAGS=-Wall -Wextra -I $(shell pwd)/src/include/ $(OPTFLAGS) -fPIC
+CFLAGS=-Wall -Wextra -I $(shell pwd)/src/include/ -I $(shell pwd)/src/ $(OPTFLAGS) -fPIC
 
 # the objects to compile on the top
 # level
-OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o obs/subprocess.o
+OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o obs/subprocess.o obs/serverimpl.o obs/sequentialimpl.o
 
 # The name of the library to produce
 SHARED_OBJECT=libvimradiation.so.1
@@ -71,16 +71,22 @@ setup:
 	mkdir -p obs/
 
 # compile the object files needed
-obs/radiation.o: src/radiation.c
+obs/radiation.o: src/radiation/radiation.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-obs/blocking_queue.o: src/blocking_queue.c
+obs/blocking_queue.o: src/util/blocking_queue.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-obs/strbuf.o: src/strbuf.c
+obs/strbuf.o: src/util/strbuf.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-obs/subprocess.o: src/subprocess.c
+obs/subprocess.o: src/util/subprocess.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+obs/serverimpl.o: src/radiation/impl/serverimpl.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+obs/sequentialimpl.o: src/radiation/impl/sequentialimpl.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 install: all
