@@ -113,12 +113,13 @@ you.
 
 There are 5 different highlighting groups that Radiation uses and must be
 defined by the user.
-	* `RadiationCTypedef` is the highlighting group for typedef'd types
-	* `RadiationCStruct` is the highlighting group for structures
-	* `RadiationCEnum` is the highlighting group for enumerations
-	* `RadiationCUnion` is the highlighting group for unions
-	* `RadiationCFunction` is the highlighting group for functions
-To add a highlighting group add to your vimrc or colorscheme file
+* `RadiationCTypedef` is the highlighting group for typedef'd types
+* `RadiationCStruct` is the highlighting group for structures
+* `RadiationCEnum` is the highlighting group for enumerations
+* `RadiationCUnion` is the highlighting group for unions
+* `RadiationCFunction` is the highlighting group for functions
+
+To add a highlighting group add to your vimrc or colorscheme file:
 
 	hi <group> ctermfg=<fg color for terminal> guifg=<fg for gvim>
 
