@@ -12,7 +12,8 @@ function! radiation#Radiation_Init()
 	" Initialize the library
 	python radiation_init()
 	
-	if exists('l:radiation_errormesg')
+	if exists('l:radiation_errormesg') && g:radiation_noisy == 1
+		" There was an error and we should echo it if we are being noisy
 		echoerr l:radiation_errormesg
 	endif
 	
@@ -27,12 +28,8 @@ function! radiation#Radiate()
 
     " This is where the errors are supposed to be
 	" stored. This can be quieted with g:radiation_silent
-	if ! exists("g:radiation_silent") || g:radiation_silent == 0  
-	
-		if exists('l:radiation_errormesg')
-			echoerr l:radiation_errormesg
-		endif
-
+	if exists('l:radiation_errormesg') && g:radiation_noisy == 1
+		echoerr l:radiation_errormesg
 	endif
 
 endfunc

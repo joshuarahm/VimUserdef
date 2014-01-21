@@ -10,8 +10,9 @@
  * function are prefaced with `vim`
  */
 
-#include "blocking_queue.h"
 #include <stdio.h>
+
+#include "blocking_queue.h"
 
 #define RADIATION_OK 0
 #define RADIATION_ENORADIATOR 1
@@ -39,6 +40,8 @@ enum command_type {
 	  COMMAND_SYNDEF
 	, COMMAND_RAW
     , COMMAND_QUERY
+    , COMMAND_ERROR
+    , COMMAND_FATAL
 };
 
 enum message_type {
@@ -76,6 +79,11 @@ typedef struct {
             /* The variable to query */
             char* query ;
         } query ;
+
+        struct {
+            /* pointer to the error message */
+            char* error ;
+        } error ;
 	} ;
 
 } command_node_t ;
@@ -196,6 +204,27 @@ int radiator_wait_digest( radiator_t* rad, uint64_t timeout ) ;
  */
 char* radiator_query_variable_default( radiator_t* rad, const char* var, const char* def ) ;
 
+/* 
+ * Posts an error message to Vim. The string is 
+ * strdup'd and posted on the queue.
+ */
+int radiator_post_error_message( radiator_t* rad, const char* error) ;
+
+/*
+ * A printf-like frontend to radiator_post_error_message
+ */
+void reprintf( radiator_t* rad, const char* fmt, ... ) ;
+
+/* 
+ * Just like the above, except that the string is not strdup'd
+ * so this function will take control of the error pointer using
+ * double pointer notation.
+ */
+int radiator_post_error_message_destr( radiator_t* rad, char** error) ;
+
+/*
+ * frees the memory for a message
+ */
 void message_delete( message_t* mesg ) ;
 
 #ifdef __cplusplus

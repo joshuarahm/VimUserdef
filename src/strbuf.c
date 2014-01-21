@@ -72,7 +72,7 @@ static int strbuf_exhaust( strbuf_t* buffer, ovector_t* vec,
     int offset = 0 ;
     int i, off1, off2 ;
 
-    while ( offset < buffer->len ) {
+    while ( offset < (int)buffer->len ) {
         /* execute the regular expression on
          * the buffer */
         rc = strbuf_pcre_exec( buffer, info->regex, info->extra, offset, vec, options | PCRE_PARTIAL ) ;

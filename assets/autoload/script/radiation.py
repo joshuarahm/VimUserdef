@@ -13,6 +13,9 @@ radiation_lib = None
 def set_vim_error_mesg( errmesg ):
     vim.command( "let l:radiation_errormesg='%s'" % errmesg ) 
 
+def append_vim_error_mesg( errmesg ):
+    vim.command( "let l:radiation_errormesg=l:radiation_errormesg.'%s'" % errmesg ) 
+
 def radiation_init():
     global radiation_lib
     
@@ -42,6 +45,7 @@ def radiation_init():
     # radiation lib successfully initialized
     
 def radiate( filename, filetype, env ):
+    set_vim_error_mesg("") ;
     # log = open("/tmp/pylog", "w") 
     
     # make the library call to radiate. This will
@@ -79,5 +83,8 @@ def radiate( filename, filetype, env ):
                     radiation_lib.radiation_put_error_message( None, 1 ) ;
                 else:
                     radiation_lib.radiation_put_string_message( get ) ;
+            elif( command.startswith("e:") ):
+                var = command[2:] ;
+                append_vim_error_mesg(var) ;
             else:
                 vim.command( command )

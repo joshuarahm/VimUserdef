@@ -22,7 +22,7 @@ CFLAGS=-Wall -Wextra -I $(shell pwd)/src/include/ $(OPTFLAGS) -fPIC
 
 # the objects to compile on the top
 # level
-OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o
+OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o obs/subprocess.o
 
 # The name of the library to produce
 SHARED_OBJECT=libvimradiation.so.1
@@ -78,6 +78,9 @@ obs/blocking_queue.o: src/blocking_queue.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 obs/strbuf.o: src/strbuf.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+obs/subprocess.o: src/subprocess.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 install: all

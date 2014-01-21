@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include "c_blacklist.h"
+#include "util/subprocess.h"
 
 radiator_t c_radiator ;
 
@@ -88,7 +89,7 @@ const pcre_extra* c_pcre_extra_arr[ LENGTH( c_regexes ) ] ;
 
 static void c_match_callback( const char* str, size_t len, int regex, int group ) {
 
-    lprintf( "Callback match %.*s %d %d\n", len, str, regex, group ) ;
+    lprintf( "Callback match %.*s %d %d\n", (int)len, str, regex, group ) ;
 
     if( regex < 0 || regex > (int)LENGTH(c_highlights) ) 
         return ;
@@ -133,25 +134,40 @@ static void run_stream( radiator_t* ths, FILE* file ) {
 	free( vector ) ;
 }
 
+void c_error_callback( radiator_t* radiator, const char* error ) {
+    lprintf("Recieved error message: %s\n", error) ;
+    /* Something came out of stderr. Give the error to Vim */
+    radiator_post_error_message( radiator, error ) ;
+}
+
 static int c_radiate_file(
 	radiator_t* ths,
 	const char* filename,
 	const char* filetype,
 	const char* env ) {
+
 	(void) env ;
 	(void) filetype ;
 
+    /* Get variables needed to compile */
 	char* c_compiler = radiator_query_variable_default( ths, "radiation_c_compiler", "gcc" ) ;
 	char* c_flags    = radiator_query_variable_default( ths, "radiation_c_cflags", "" ) ;
+    
 	FILE* proc ;
 
 	char buffer[ 4096 ] ;
 	/* create the command and run the popen */
 	snprintf( buffer, 4096, "%s %s -E %s", c_compiler, c_flags, filename ) ;
-	lprintf("Running command: %s\n", buffer) ;
-	proc = popen( buffer, "r" ) ;
 
-	run_stream( ths, proc ) ;
+	proc = run_process( buffer, (error_callback_t)c_error_callback, &c_radiator ) ;
+
+    if( ! proc ) {
+        reprintf(&c_radiator, "Error running process: %s\n", strerror( errno ) ) ;
+        radiator_queue_command( &c_radiator, NULL ) ;
+    } else {
+	    run_stream( ths, proc ) ;
+        fclose( proc ) ;
+    }
 
 	free( c_compiler ) ;
 	free( c_flags ) ;
@@ -165,25 +181,39 @@ int c_init( void* arg ) {
 	const char* error ;
 	int   error_off ;
     size_t   i ;
+
+    /* Initialize the C radiator struct. This is
+     * our gateway to Vim */
 	init_radiator( &c_radiator, c_radiate_file ) ;
+
+    /* initialize a blacklist of reserved words so the radiator
+     * does not add on to then */
     blacklist_init( c_reserved_words ) ;
 
     if( LENGTH(c_highlights) < LENGTH(c_regexes) ) {
-        lprintf("The number of c regexes is greater than the number of highligts. This will cause a segmentation fault. Abort.") ;
+        /* Check to make sure we do not have more regexes
+         * than we do highlights */
+        reprintf( &c_radiator,
+            "The number of c regexes is greater than "
+            "the number of highligts. This will cause "
+            "a segmentation fault. Abort.") ;
+
         return -1 ;
     }
 
     for( i = 0 ; i < LENGTH(c_regexes); ++ i ) {
+        /* Iterate through all the regular expressions and
+         * compile/analyze them  */
 	    c_pcre_arr[i] = pcre_compile(c_regexes[i], PCRE_DOTALL | PCRE_MULTILINE , &error, &error_off, NULL) ;;
 
 	    if( ! c_pcre_arr[i] ) {
-		    lprintf("There was an error compiling regex '%s' offset %d\n", error, error_off) ;
+            reprintf(&c_radiator, "There was an error compiling regex '%s' offset %d\n", error, error_off) ;
 		    return -1;
 	    }
         
 	    c_pcre_extra_arr[i] = pcre_study(c_pcre_arr[i], 0, &error) ;
 	    if( ! c_pcre_extra_arr[i] ) {
-		    lprintf("Error with pcre_study: %s\n", error) ;
+		    reprintf( &c_radiator, "Error with pcre_study: %s\n", error) ;
 		    return -1;
 	    }
     }

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 /* First we need to forward declare all of the modules
  * units so we can reference them in this file */
@@ -153,7 +154,10 @@ int radiation_init( ) {
     int i ;
     int ec ;
 
+#ifdef DEBUG
     logfile = fopen("radiation_log.txt", "a+") ;
+#endif
+
     lprintf("Initializing Radiation\n") ;
 
 	g_registry = reg ;
@@ -254,6 +258,9 @@ void delete_command( command_node_t* command ) {
     case COMMAND_QUERY:
         free( command->query.query ) ;
         break ; 
+    case COMMAND_ERROR:
+    case COMMAND_FATAL:
+        free( command->error.error ) ;
     }
 
     free( command ) ;
@@ -325,6 +332,14 @@ const char* radiation_next() {
                 /* a litte hack to signal a query */
                 snprintf( buf, RADIATION_MAX_COMMAND_LEN, "q:%s", take->query.query ) ;
                 g_del_bucket = strdup( buf ) ; 
+                break ;
+
+            case COMMAND_ERROR:
+            case COMMAND_FATAL:
+                snprintf( buf, RADIATION_MAX_COMMAND_LEN, "e:%s", take->query.query ) ;
+                g_del_bucket = strdup( buf ) ; 
+
+                lprintf( "[error] - %s\n", take->error.error )
                 break ;
             }
 
@@ -440,4 +455,33 @@ int radiation_put_error_message( const char* message, int errorcode ) {
     blocking_queue_add( g_current_radiator->message_queue, tmp ) ;
 
     return 0 ;
+}
+
+int radiator_post_error_message( radiator_t* rad, const char* error ) {
+    char* tmp = strdup( error ) ;
+    return radiator_post_error_message_destr( rad, &tmp ) ;
+}
+
+int radiator_post_error_message_destr( radiator_t* rad, char** error ) {
+    command_node_t* command_node = calloc( sizeof(command_node_t), 1 ) ;
+
+    command_node->type = COMMAND_ERROR ;
+    command_node->error.error = *error ; 
+    *error = NULL ;
+
+    radiator_queue_command( rad, command_node ) ;
+
+    return 0 ;
+}
+
+void reprintf( radiator_t* rad, const char* fmt, ... ) {
+    va_list ap ;
+    va_start( ap, fmt ) ;
+    /* leave space for NULL terminator */
+    size_t needed = vsnprintf( NULL, 0, fmt, ap ) + 1;
+    char* error = malloc( needed ) ;
+    snprintf(error, needed, fmt, ap) ;
+    error[needed] = 0 ;
+    va_end( ap ) ;
+    radiator_post_error_message_destr( rad, &error ) ;
 }
