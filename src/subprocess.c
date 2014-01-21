@@ -2,6 +2,8 @@
 #include "radiation.h"
 #include "errno.h"
 #include <string.h>
+#include <wait.h>
+#include <fcntl.h>
 
 struct thread_args {
     error_callback_t callback ;
@@ -77,6 +79,50 @@ FILE* run_process( const char* command, error_callback_t callback, void* arg ) {
             }
         }
     }
+
+    return ret ;
+}
+
+FILE* spawn_oevp( const char* file, char *const argv[] ) {
+    int out_pipe[2] ;
+    if( pipe( out_pipe ) ) {
+        return NULL ;
+    }
+
+    pid_t child ;
+    if( (child = fork()) == 0 ) {
+        dup2(out_pipe[1], STDOUT_FILENO) ;
+        dup2(out_pipe[1], STDERR_FILENO) ;
+        close( out_pipe[0] ) ;
+        execvp( file, argv ) ;
+        perror("Execvp failed") ;
+        exit(1) ;
+    }
+
+    close( out_pipe[1] ) ;
+    return fdopen(out_pipe[0], "r") ;
+}
+
+int spawn_waitvp( const char* file, char *const argv[], int options ) {
+    pid_t child ;
+    int output ;
+
+    if( (child = fork()) == 0 ) {
+
+        if( options & SPAWN_QUIET ) {
+            /* we need to quiet down the process */
+            output = open("/dev/null",O_RDONLY) ;
+            dup2( output, STDOUT_FILENO ) ;
+            dup2( output, STDERR_FILENO ) ;
+        }
+
+        execvp( file, argv ) ;
+        perror("Execvp failed") ;
+        exit(32) ;
+    }
+    
+    int ret ;
+    waitpid( child, &ret, 0 ) ;
 
     return ret ;
 }

@@ -34,6 +34,7 @@ def radiation_init():
     radiation_lib.radiate.argtypes = [c_char_p, c_char_p, c_char_p]
     radiation_lib.radiation_put_string_message.argtypes = [c_char_p]
     radiation_lib.radiation_put_error_message.argtypes  = [c_char_p, c_int]
+    radiation_lib.radiation_set_servername.argtypes  = [c_char_p]
     
     # print ("Initializing Radiation ...")
     err = radiation_lib.radiation_init() ;
@@ -41,6 +42,7 @@ def radiation_init():
     if err > 0:
         errmesg = radiation_lib.radiation_get_error_message()
         set_vim_error_mesg( errmesg ) ;
+
     
     # radiation lib successfully initialized
     
@@ -48,6 +50,10 @@ def radiate( filename, filetype, env ):
     set_vim_error_mesg("") ;
     # log = open("/tmp/pylog", "w") 
     
+    # Server name is not set until now in Vim
+    servername = vim.eval("v:servername")
+    radiation_lib.radiation_set_servername( servername ) ;
+
     # make the library call to radiate. This will
     # set us up to iterate across all the commands
     # that the radiator will spit out
@@ -62,6 +68,11 @@ def radiate( filename, filetype, env ):
     
         return ;
     
+    if servername == None or len(servername) == 0:
+        # Process sequentially if there is no servername
+        digest_all() 
+    
+def digest_all():
     while True :
         # The radiator is hard at work, it is time
         # for us to pick each command off the queue

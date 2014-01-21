@@ -128,7 +128,7 @@ static void run_stream( radiator_t* ths, FILE* file ) {
         (const pcre_extra**)c_pcre_extra_arr, LENGTH(c_regexes),
         0, c_match_callback ) ;
 
-    radiator_queue_command( &c_radiator, NULL ) ;
+    radiator_signal_end( &c_radiator, RADIATION_OK ) ;
 
 	strbuffer_delete( buffer ) ;
 	free( vector ) ;
@@ -163,7 +163,7 @@ static int c_radiate_file(
 
     if( ! proc ) {
         reprintf(&c_radiator, "Error running process: %s\n", strerror( errno ) ) ;
-        radiator_queue_command( &c_radiator, NULL ) ;
+        radiator_signal_end( &c_radiator, RADIATION_ECANTRUN ) ;
     } else {
 	    run_stream( ths, proc ) ;
         fclose( proc ) ;

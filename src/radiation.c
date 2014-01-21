@@ -1,5 +1,6 @@
 #include "tree.h"
 #include "radiation.h"
+#include "util/subprocess.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -47,7 +48,6 @@ struct module_inc_node {
 
 } ;
 
-
 /* Now we need to redefine the macro to fill
  * the include array with modules */
 #undef INCLUDE_MODULE
@@ -86,6 +86,7 @@ static int treenode_cmp( struct treenode* node1, struct treenode* node2 ) {
 /* used for iteration */
 radiator_t* g_current_radiator = NULL ;
 char* g_del_bucket = NULL ;
+char* g_servername = NULL ;
 
 char g_error_message [ RADIATION_ERROR_MESSAGE_LEN ] ;
 int  g_error_code = 0 ;
@@ -477,11 +478,56 @@ int radiator_post_error_message_destr( radiator_t* rad, char** error ) {
 void reprintf( radiator_t* rad, const char* fmt, ... ) {
     va_list ap ;
     va_start( ap, fmt ) ;
-    /* leave space for NULL terminator */
-    size_t needed = vsnprintf( NULL, 0, fmt, ap ) + 1;
-    char* error = malloc( needed ) ;
-    snprintf(error, needed, fmt, ap) ;
-    error[needed] = 0 ;
-    va_end( ap ) ;
-    radiator_post_error_message_destr( rad, &error ) ;
+    char buffer[1024] ;
+    vsnprintf( buffer, sizeof(buffer), fmt, ap ) ;
+    radiator_post_error_message( rad, buffer ) ;
 }
+
+int radiation_set_servername( const char* servername ) {
+    if ( servername && servername[0] != 0 ) {
+        g_servername = strdup( servername ) ;
+        return -1 ;
+    }
+
+    return RADIATION_OK ;
+}
+
+int radiation_call_digest( ) {
+    char executable[1024] ;
+    int ret ;
+
+    if( g_servername ) {
+        readlink("/proc/self/exe", executable, sizeof(executable));
+        char* argv[] = {
+            executable,
+            "--servername",
+            g_servername,
+            "--remote-send",
+            ":RadiationDigest\n",
+            NULL,
+        } ;
+
+        /* This is the better way to do things */
+        ret = spawn_waitvp( executable, argv, SPAWN_QUIET ) ;
+    }
+
+    return ret ;
+}
+
+void radiator_signal_end( radiator_t* radiator, int success ) {
+    /* we might use this sometime */
+    (void) success ;
+
+    radiator_queue_command( radiator, NULL ) ;
+    int ret = 0;
+
+    lprintf("Radiator signal end.\n") ;
+
+    /* Need to digest the highlights as well as the errors */
+    ret = radiation_call_digest() ;
+
+    if( ret != 0 ) {
+        lprintf("Unable to spawn vim program ec=%d\n", ret) ;
+        reprintf( radiator, "Unable to spawn vim program to invoke server ec=%d\n", ret) ;
+    }
+} ;

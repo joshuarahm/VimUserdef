@@ -19,6 +19,7 @@
 #define RADIATION_ENOINIT 2
 #define RADIATION_ETIMEOUT 3
 #define RADIATION_ENOARGS 4
+#define RADIATION_ECANTRUN 5
 
 extern FILE* logfile ;
 
@@ -223,6 +224,20 @@ void reprintf( radiator_t* rad, const char* fmt, ... ) ;
 int radiator_post_error_message_destr( radiator_t* rad, char** error) ;
 
 /*
+ * Communicates that the radiation is finished and returns NULL
+ * on the command queue and ivokes an asyncronous command to the
+ * server if it exists and the success flag is RADIATION_OK.
+ */
+void radiator_signal_end( radiator_t* rad, int success ) ;
+
+/*
+ * If Vim is running in a server environment, it is possible to
+ * invoke it through the remote interface and tell it digest the
+ * priority queue.
+ */
+int radiation_call_digest( ) ;
+
+/*
  * frees the memory for a message
  */
 void message_delete( message_t* mesg ) ;
@@ -266,6 +281,10 @@ extern "C" {
     /* Puts an error message and error code to communicate
      * excepive behavior to the lower layers */
     int radiation_put_error_message( const char* message, int errorcode ) ;
+
+    /* Tells radiation what the servername of the current running Vim
+     * session is */
+    int radiation_set_servername( const char* servername ) ;
 #ifdef __cplusplus
 }
 #endif
