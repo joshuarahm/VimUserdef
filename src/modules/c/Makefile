@@ -38,4 +38,4 @@ c_blacklist.o: c_blacklist.c
 # This rule should remove all of the object
 # files and the library produced
 clean:
-	rm -rf c_radiator.o libcradiator.a 
+	rm -rf c_radiator.o c_blacklist.o libcradiator.a 
