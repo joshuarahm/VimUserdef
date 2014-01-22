@@ -23,3 +23,9 @@ INCLUDE_MODULE( test )
  * .c files.
  */
 INCLUDE_MODULE( c )
+
+/*
+ * Include the module for highlighting
+ * .cpp files.
+ */
+INCLUDE_MODULE( cpp )
