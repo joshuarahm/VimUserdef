@@ -19,7 +19,7 @@ int   _vim_sequential_error_destr_( radiator_t* ths, char** error ) {
     return 0 ;
 }
 
-static int _p_vim_sequential_radiator_query_variable_( radiator_t* rad, const char* var, message_t** ret ) {
+int _p_vim_sequential_radiator_query_variable_( radiator_t* rad, const char* var, message_t** ret ) {
     command_node_t* command = malloc( sizeof( command_node_t ) ) ;
     command->type = COMMAND_QUERY ;
     command->query.query = strdup(var) ;
@@ -63,10 +63,12 @@ int   _vim_sequential_read_message_( radiator_t* ths, uint64_t timeout, message_
 	return blocking_queue_take( ths->message_queue, (void**)ret, timeout ) ;
 }
 
-int   (*_vim_sequential_post_error)(radiator_t*,const char*) = _vim_sequential_post_error_ ;
-int   (*_vim_sequential_error_destr)(radiator_t*,char**) = _vim_sequential_error_destr_ ;
-char* (*_vim_sequential_query)(radiator_t*,const char*,const char*) = _vim_sequential_query_ ;
-void  (*_vim_sequential_finish)(radiator_t*,int) = _vim_sequential_finish_ ;
-void  (*_vim_sequential_queue_command)(radiator_t*,command_node_t*) = _vim_sequential_queue_command_ ;
-int   (*_vim_sequential_read_message)(radiator_t*,uint64_t,message_t**) = _vim_sequential_read_message_ ;
+struct SINTF sequential_interface = {
+    .error       = _vim_sequential_post_error_    ,
+    .error_destr = _vim_sequential_error_destr_   ,
+    .query       = _vim_sequential_query_         ,
+    .finished    = _vim_sequential_finish_        ,
+    .queue       = _vim_sequential_queue_command_ ,
+    .read        = _vim_sequential_read_message_  ,
+} ;
 

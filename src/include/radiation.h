@@ -154,6 +154,38 @@ struct RADIATOR ;
 
 typedef int (*radiate_file_routine_t)(struct RADIATOR*,const char*,const char*,const char*);
 
+
+#define SINTF_BODY \
+    /* post an error message to Vim */                         \
+    int   (*error)( struct RADIATOR* ths, const char* error ) ;\
+    /*                                                         \
+     * Just like the above, except that the string is not strdup'd   \
+     * so this function will take control of the error pointer using \
+     * double pointer notation.                                      \
+     */                                                              \
+    int   (*error_destr)( struct RADIATOR* ths, char** error );      \
+    /*                                                               \
+    * Queries Vim for the value of a variable, waits for             \
+    * the result and stores that result in `ret`.                    \
+    *                                                                \
+    * When passed into this function, if *ret != NULL, it is free'd  \
+    * to make chaining operations more consise, so be careful        \
+    * when using the values repeatedly and be sure to ALWAYS         \
+    * initialize your message_t*'s to NULL                           \
+    */                                                               \
+    char* (*query)( struct RADIATOR* ths, const char* variable, const char* def ) ; \
+    /* signal the end of the radiation */                                           \
+    void  (*finished)( struct RADIATOR* ths, int success ) ;                        \
+    /* Adds a command to the radiator's data queue to be processed by               \
+     * the client side */                                                           \
+    void (*queue)( struct RADIATOR* ths, command_node_t* node ) ;                   \
+    /* reads a message from the Vim server. This may be */                          \
+    int  (*read)( struct RADIATOR* ths, uint64_t timeout, message_t** ret ) ;
+
+struct SINTF {
+    SINTF_BODY
+} ;
+
 /* The general struct RADIATOR is the
  * structure that holds all the information
  * for radiating a file */
@@ -167,37 +199,22 @@ typedef struct RADIATOR {
 	blocking_queue_t* data_queue ;
     blocking_queue_t* message_queue ;
 
-    /* post an error message to Vim */
-    int   (*error)( struct RADIATOR* ths, const char* error ) ;
-    /* 
-     * Just like the above, except that the string is not strdup'd
-     * so this function will take control of the error pointer using
-     * double pointer notation.
-     */
-    int   (*error_destr)( struct RADIATOR* ths, char** error );
 
-    /*
-    * Queries Vim for the value of a variable, waits for
-    * the result and stores that result in `ret`.
-    * 
-    * When passed into this function, if *ret != NULL, it is free'd
-    * to make chaining operations more consise, so be careful
-    * when using the values repeatedly and be sure to ALWAYS
-    * initialize your message_t*'s to NULL
-    */
-    char* (*query)( struct RADIATOR* ths, const char* variable, const char* def ) ;
+    union {
+        struct SINTF system_interface;
 
-    /* signal the end of the radiation */
-    void  (*finished)( struct RADIATOR* ths, int success ) ;
-
-    /* Adds a command to the radiator's data queue to be processed by
-     * the client side */
-    void (*queue)( struct RADIATOR* ths, command_node_t* node ) ;
-
-    /* reads a message from the Vim server. This may be */
-    int  (*read)( struct RADIATOR* ths, uint64_t timeout, message_t** ret ) ;
-
+        struct {
+             int   (*error)( struct RADIATOR* ths, const char* error ) ;
+             int   (*error_destr)( struct RADIATOR* ths, char** error );
+             char* (*query)( struct RADIATOR* ths, const char* variable, const char* def ) ;
+             void  (*finished)( struct RADIATOR* ths, int success ) ;
+             void  (*queue)( struct RADIATOR* ths, command_node_t* node ) ;
+             int   (*read)( struct RADIATOR* ths, uint64_t timeout, message_t** ret ) ;
+        } ;
+    } ;
 } radiator_t ;
+
+#undef SINTF
 
 /* initializes a radiator. */
 int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) ;

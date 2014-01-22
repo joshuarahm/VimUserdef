@@ -1,11 +1,5 @@
 let s:script_dir = expand('<sfile>:p:h')
 
-function! radiation#error(a:mesg)
-	if g:radiation_noisy == 1
-		echoerr a:mesg
-	endif
-endfunc
-
 " The following function bootstrap into python almost
 " immediately, which bootstrap into C code almost immediately
 " Function is called when radiation starts up.
@@ -51,5 +45,11 @@ function! radiation#Digest()
 	" stored. This can be quieted with g:radiation_silent
 	if l:radiation_errormesg!="" && g:radiation_noisy == 1
 		echoerr l:radiation_errormesg
+	endif
+endfunc
+
+function! radiation#Error( err )
+	if g:radiation_noisy == 1
+		echoerr a:err
 	endif
 endfunc

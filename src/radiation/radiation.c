@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 /* First we need to forward declare all of the modules
  * units so we can reference them in this file */
@@ -206,6 +207,14 @@ int radiation_get_error_code() {
 	return g_error_code ;
 }
 
+static void pick_interface( radiator_t* rad ) {
+	if( g_servername == NULL ) {
+        rad->system_interface = sequential_interface ;
+	} else {
+		rad->system_interface = server_interface ;
+	}
+}
+
 int radiate( const char* filename, const char* filetype, const char* env ) {
     lprintf( "Radiating new file %s, type %s, env %s\n", filename, filetype, env ) ;
 
@@ -226,6 +235,9 @@ int radiate( const char* filename, const char* filetype, const char* env ) {
 		 * do the highlighting and pass it the arguments
 		 * needed */
 		g_current_radiator = node->value ;
+        
+        /* Should we use a sequential or server based interface */
+        pick_interface( g_current_radiator ) ;
 		struct thread_args* args = (struct thread_args*)malloc( sizeof( struct thread_args ) );
 		args->filename = strdup(filename) ;
 		args->filetype = strdup(filetype) ;
@@ -370,27 +382,6 @@ int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) {
     rad->data_queue    = new_blocking_queue() ;
     rad->message_queue = new_blocking_queue() ;
     rad->routine  = routine ;
-
-	if( g_servername == NULL ) {
-		/* There is no server enabled so we need
-		 * to use the sequential interface */
-		rad->error = _vim_sequential_post_error ;
-		rad->error_destr = _vim_sequential_error_destr ;
-		rad->query = _vim_sequential_query ;
-		rad->finished = _vim_sequential_finish ;
-		rad->queue = _vim_sequential_queue_command ;
-		rad->read = _vim_sequential_read_message ;
-	} else {
-		/* We have a server enabled, so we should
-		 * use the server interface */
-		rad->error = _vim_server_post_error ;
-		rad->error_destr = _vim_server_error_destr ;
-		rad->query = _vim_server_query ;
-		rad->finished = _vim_server_finish ;
-		rad->queue = _vim_server_queue_command ;
-		rad->read = _vim_server_read_message ;
-	}
-    
     return 0 ;
 }
 
@@ -508,20 +499,23 @@ char* radiation_server_call( char** argv, size_t len, int* ret ) {
 		for( i = 0 ; i < len ; ++ i ) {
 			args[i + 3] = argv[i] ;
 		}
-		args[i] = NULL ;
+		args[i + 3] = NULL ;
 
 		output[0] = 0;
 		*ret = spawn_wait_outvp( executable, args, output, sizeof(output) ) ;
+        /* chomp the newline */
+        output[strlen(output)-1] = 0 ;
 		return output[0] == 0 ? NULL : strdup( output ) ;
 	}
 
 	*ret = -1 ;
+    free( args ) ;
 	return NULL ;
 }
 
 int radiation_call_digest( ) {
     char executable[1024] ;
-    int ret ;
+    int ret = 0;
 
     if( g_servername ) {
         readlink("/proc/self/exe", executable, sizeof(executable));
@@ -530,7 +524,7 @@ int radiation_call_digest( ) {
             "--servername",
             g_servername,
             "--remote-send",
-            ":RadiationDigest\n",
+            "\033:RadiationDigest<CR>",
             NULL,
         } ;
 

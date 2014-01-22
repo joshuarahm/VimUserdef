@@ -136,8 +136,19 @@ int spawn_wait_outvp( const char* file, char *const argv[], char* out, size_t le
 	}
 
 	pid_t child ;
+    lprintf( "exec: %s - ", file ) ;
+
+    char** args = (char**)argv ;
+
+    for( ; *args != NULL ; ++ args ) {
+        lprintf("%s ", *args) ;
+    }
+    lprintf("\n") ;
+
 	if( (child = fork()) == 0 ) {
+        ret = open( "/dev/null", O_WRONLY ) ;
 		dup2( outp[1], STDOUT_FILENO ) ;
+        dup2( ret, STDERR_FILENO ) ;
 		close( outp[0] ) ;
 	
 		execv( file, argv ) ;
