@@ -22,7 +22,7 @@ CFLAGS=-Wall -Wextra -I $(shell pwd)/src/include/ -I $(shell pwd)/src/ $(OPTFLAG
 
 # the objects to compile on the top
 # level
-OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o obs/subprocess.o obs/serverimpl.o obs/sequentialimpl.o
+OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o obs/subprocess.o obs/serverimpl.o obs/sequentialimpl.o obs/sset.o
 
 # The name of the library to produce
 SHARED_OBJECT=libvimradiation.so.1
@@ -75,6 +75,9 @@ obs/radiation.o: src/radiation/radiation.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 obs/blocking_queue.o: src/util/blocking_queue.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+obs/sset.o: src/util/sset.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 obs/strbuf.o: src/util/strbuf.c

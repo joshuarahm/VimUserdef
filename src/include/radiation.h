@@ -186,6 +186,22 @@ struct SINTF {
     SINTF_BODY
 } ;
 
+#define EXTENDS_RADIATOR(type) \
+    union { \
+        radiator_t super ; \
+        struct { \
+            radiate_file_routine_t routine ;\
+	        blocking_queue_t* data_queue ;\
+            blocking_queue_t* message_queue ;\
+ 	        int   (*error)( type* ths, const char* error ) ;\
+ 	        int   (*error_destr)( type* ths, char** error );\
+ 	        char* (*query)( type* ths, const char* variable, const char* def ) ;\
+ 	        void  (*finished)( type* ths, int success ) ;\
+ 	        void  (*queue)( type* ths, command_node_t* node ) ;\
+ 	        int   (*read)( type* ths, uint64_t timeout, message_t** ret ) ;\
+        } ; \
+    };
+
 /* The general struct RADIATOR is the
  * structure that holds all the information
  * for radiating a file */

@@ -13,9 +13,9 @@ function! radiation#Radiation_Init()
 	" Initialize the library
 	python radiation_init()
 	
-	if exists('l:radiation_errormesg') && g:radiation_noisy == 1
+	if l:radiation_errormesg != "" && g:radiation_noisy == 1
 		echoerr l:radiation_errormesg
-		endif
+	endif
 	
 	let g:radiation_initialized=1
 endfunc

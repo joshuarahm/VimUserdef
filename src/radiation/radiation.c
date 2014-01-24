@@ -382,6 +382,8 @@ int init_radiator( radiator_t* rad, radiate_file_routine_t routine ) {
     rad->data_queue    = new_blocking_queue() ;
     rad->message_queue = new_blocking_queue() ;
     rad->routine  = routine ;
+
+    pick_interface( rad ) ;
     return 0 ;
 }
 
@@ -472,7 +474,7 @@ void reprintf( radiator_t* rad, const char* fmt, ... ) {
     va_list ap ;
     va_start( ap, fmt ) ;
     char buffer[1024] ;
-    vsnprintf( buffer, sizeof(buffer), fmt, ap ) ;
+    vsnprintf( buffer, sizeof(buffer) - 1, fmt, ap ) ;
     rad->error( rad, buffer ) ;
 }
 
