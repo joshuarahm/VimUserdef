@@ -41,11 +41,10 @@ all: setup modules $(OBJECTS)
 
 # use a clever perl script to pick the modules
 # that we need to compile
-modules: INCLUDED_MODULES=$(shell perl -lne \
+modules: INCLUDED_MODULES=$(shell gcc -x c -E src/modules/modules.inc | perl -lne \
 	'if( $$_ =~ /INCLUDE_MODULE\(\s*(\w+)\s*\)/ ) { \
 		print "src/modules/$$1"\
-	}'\
-	src/modules/modules.inc)
+	}')
 
 # Iterate and compile all of the modules
 modules:
