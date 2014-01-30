@@ -5,6 +5,7 @@ SHELL=/bin/bash
 # The C compiler to use. Allows the user specify
 # the compiler on as an environment variable
 CC?=gcc
+CPPC?=g++
 
 # The archiver. This is used by the modules to
 # archive their object code
@@ -22,10 +23,15 @@ CFLAGS=-Wall -Wextra -I $(shell pwd)/src/include/ -I $(shell pwd)/src/ $(OPTFLAG
 
 # the objects to compile on the top
 # level
-OBJECTS=obs/radiation.o obs/blocking_queue.o obs/strbuf.o obs/subprocess.o obs/serverimpl.o obs/sequentialimpl.o obs/sset.o
+OBJECTS=obs/radiation.o obs/blocking_queue.o\
+	obs/strbuf.o obs/subprocess.o\
+	obs/serverimpl.o obs/sequentialimpl.o\
+	obs/sset.o obs/PcreRegex.o obs/StreamMatcher.o \
+	obs/Mutex.o obs/Condition.o obs/Thread.o obs/Time.o
 
 # The name of the library to produce
 SHARED_OBJECT=libvimradiation.so.1
+STATIC_LIB=libvimradiationstat.a
 
 # The modules that are included in this build so
 # the makefile knows what to build
@@ -33,11 +39,13 @@ SHARED_OBJECT=libvimradiation.so.1
 # export some flags to tell the modules
 # what some of the configuration is
 export CC
+export CPPC
 export CFLAGS
 
-all: setup modules $(OBJECTS)
-	$(CC) -shared -Wl,--whole-archive $(shell find . -name lib*.a ) \
+all: setup $(OBJECTS) modules 
+	$(CPPC) -shared -Wl,--whole-archive $(shell find modules -name lib*.a ) \
 	  -Wl,--no-whole-archive,-soname,$(SHARED_OBJECT) -o $(SHARED_OBJECT) $(OBJECTS)
+	$(AR) -r $(STATIC_LIB) $(OBJECTS)
 
 # use a clever perl script to pick the modules
 # that we need to compile
@@ -90,6 +98,24 @@ obs/serverimpl.o: src/radiation/impl/serverimpl.c
 
 obs/sequentialimpl.o: src/radiation/impl/sequentialimpl.c
 	$(CC) $(CFLAGS) -o $@ -c $<
+
+obs/Mutex.o: src/cpp/Mutex.cpp
+	$(CPPC) $(CFLAGS) -o $@ -c $<
+
+obs/PcreRegex.o: src/cpp/PcreRegex.cpp
+	$(CPPC) $(CFLAGS) -o $@ -c $<
+
+obs/Condition.o: src/cpp/Condition.cpp
+	$(CPPC) $(CFLAGS) -o $@ -c $<
+
+obs/StreamMatcher.o: src/cpp/StreamMatcher.cpp
+	$(CPPC) $(CFLAGS) -o $@ -c $<
+
+obs/Thread.o: src/cpp/Thread.cpp
+	$(CPPC) $(CFLAGS) -o $@ -c $<
+
+obs/Time.o: src/cpp/Time.cpp
+	$(CPPC) $(CFLAGS) -o $@ -c $<
 
 install: all
 	./install.sh

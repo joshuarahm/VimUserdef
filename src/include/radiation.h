@@ -14,6 +14,10 @@
 
 #include "blocking_queue.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define RADIATION_OK 0
 #define RADIATION_ENORADIATOR 1
 #define RADIATION_ENOINIT 2
@@ -259,49 +263,47 @@ char* radiation_server_call( char** argv, size_t len, int* ret ) ;
  */
 void message_delete( message_t* mesg ) ;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-	/* initialsizes the library and adds all the modules */
-	int radiation_init( void ) ;
+/* initialsizes the library and adds all the modules */
+int radiation_init( void ) ;
 
-	/* Invokes this program to start parsing the filename with
-	 * the environment given to it 
-	 *
-	 * Returns: an error message if the task could not be completed,
-	 * null otherwise.
-	 */
-	int radiate( const char* filename, const char* filetype, const char* env ) ;
-	
-	/*
-	 * Adds a radiator to the registry based no the filetype
-	 */
-	int radiation_register( const char* filetype, radiator_t* radiator) ;
-	
-	/*
-	 * returns the next value
-	 */
-	const char* radiation_next( void ) ;
-	
-	/*
-	 * Return an description of the
-	 * error that occured
-	 */
-	const char* radiation_get_error_message( void ) ;
-	
-	/* returns the error code */
-	int radiation_get_error_code( void ) ;
+/* Invokes this program to start parsing the filename with
+ * the environment given to it 
+ *
+ * Returns: an error message if the task could not be completed,
+ * null otherwise.
+ */
+int radiate( const char* filename, const char* filetype, const char* env ) ;
 
-    /* python-end communication to the library */
-    int radiation_put_string_message( const char* message ) ;
+/*
+ * Adds a radiator to the registry based no the filetype
+ */
+int radiation_register( const char* filetype, radiator_t* radiator) ;
 
-    /* Puts an error message and error code to communicate
-     * excepive behavior to the lower layers */
-    int radiation_put_error_message( const char* message, int errorcode ) ;
+/*
+ * returns the next value
+ */
+const char* radiation_next( void ) ;
 
-    /* Tells radiation what the servername of the current running Vim
-     * session is */
-    int radiation_set_servername( const char* servername ) ;
+/*
+ * Return an description of the
+ * error that occured
+ */
+const char* radiation_get_error_message( void ) ;
+
+/* returns the error code */
+int radiation_get_error_code( void ) ;
+
+/* python-end communication to the library */
+int radiation_put_string_message( const char* message ) ;
+
+/* Puts an error message and error code to communicate
+ * excepive behavior to the lower layers */
+int radiation_put_error_message( const char* message, int errorcode ) ;
+
+/* Tells radiation what the servername of the current running Vim
+ * session is */
+int radiation_set_servername( const char* servername ) ;
+
 #ifdef __cplusplus
 }
 #endif

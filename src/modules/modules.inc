@@ -24,3 +24,4 @@ INCLUDE_MODULE( test )
  */
 INCLUDE_MODULE( c )
 INCLUDE_MODULE( cpp )
+// INCLUDE_MODULE( haskell )

@@ -83,10 +83,10 @@ FILE* run_process( const char* command, error_callback_t callback, void* arg ) {
     return ret ;
 }
 
-FILE* spawn_oevp( const char* file, char *const argv[] ) {
+int spawn_oevp_fd( const char* file, char *const argv[] ) {
     int out_pipe[2] ;
     if( pipe( out_pipe ) ) {
-        return NULL ;
+        return -1 ;
     }
 
     pid_t child ;
@@ -100,7 +100,16 @@ FILE* spawn_oevp( const char* file, char *const argv[] ) {
     }
 
     close( out_pipe[1] ) ;
-    return fdopen(out_pipe[0], "r") ;
+	return out_pipe[0] ;
+}
+
+FILE* spawn_oevp( const char* file, char *const argv[] ) {
+	int fd = spawn_oevp_fd( file , argv ) ;
+	if( fd > 0 ) {
+    	return fdopen(fd, "r") ;
+	} else {
+		return NULL ;
+	}
 }
 
 int spawn_waitvp( const char* file, char *const argv[], int options ) {

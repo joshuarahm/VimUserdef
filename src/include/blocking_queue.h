@@ -8,6 +8,10 @@
 #define BQ_OK 0
 #define BQ_TIMEOUT ETIMEDOUT
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct list {
 	void* data ;
 	struct list* next ;
@@ -47,4 +51,7 @@ int blocking_queue_take( blocking_queue_t* queue, void** into, uint64_t timeout 
  */
 int blocking_queue_wait_digest( blocking_queue_t* queue, uint64_t timeout ) ;
 
+#ifdef __cplusplus
+}
+#endif
 #endif

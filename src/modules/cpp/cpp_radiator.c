@@ -22,7 +22,7 @@ radiator_t* cast_cpp_radiator = &cpp_radiator.super ;
 	
 /* the following are some useful regexes
  * to determine certian features */
-#define IDENTIFIER    "(?:[a-zA-Z]|_)(?:\\w|_)*"
+#define IDENTIFIER    "(?:[A-Za-z_][A-Za-z_0-9]*)"
 #define BODY(group)   "(\\{(?:[^{}]|(?"group"))*\\})"
 #define TEMPLATE "<([^{}()<>;!@#$%^&*|]|(?0))*>"
 
@@ -35,7 +35,7 @@ radiator_t* cast_cpp_radiator = &cpp_radiator.super ;
 #define STRUCT    "struct"    "\\s+(" IDENTIFIER ")"
 #define CLASS     "class"     "\\s+(" IDENTIFIER ")"
 #define NAMESPACE "namespace" "\\s+(" IDENTIFIER ")"
-#define TYPEDEF   "typedef"   "typedef.*?(\\{([^{}]|(?1))*\\})?.*?([A-Za-z0-9_]*)\\s*;"
+#define TYPEDEF   "typedef"   ".*?(\\{([^{}]|(?1))*\\})?.*?([A-Za-z0-9_]*)\\s*;"
 #define FUNCTION   "(?:\\w|\\s)+\\s+(\\w*)\\(.*?\\)\\s*(?:;|"BODY("2")")"
 
 typedef long unsigned test_t;

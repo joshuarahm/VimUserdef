@@ -15,10 +15,19 @@
 
 typedef void(*error_callback_t)( void* arg, const char* error ) ;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 FILE* run_process ( const char* command, error_callback_t callback, void* arg  ) ;
 
 /* Runs a process and returns a single pipe for both stderr and stdout */
 FILE* spawn_oevp ( const char* file, char *const argv[]  ) ;
+
+/* like the above except it returns the file destcriptor
+ * instead of the pointer
+ */
+int spawn_oevp_fd( const char* file, char *const argv[] ) ;
 
 /* runs a command, waits for it to finish and finally
  * returns the exit code. Do not do this for interactive
@@ -31,5 +40,9 @@ int spawn_waitvp( const char* file, char *const argv[], int options ) ;
  * ec 3293 = other failed
  */
 int spawn_wait_outvp( const char* file, char *const argv[], char* out, size_t len ) ;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SUBPROCESS_H_ */
