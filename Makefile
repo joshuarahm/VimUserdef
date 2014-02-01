@@ -36,7 +36,7 @@ export CC
 export CFLAGS
 
 all: setup modules $(OBJECTS)
-	$(CC) -shared -Wl,--whole-archive $(shell find . -name lib*.a ) \
+	$(CC) -shared -Wl,--whole-archive $(shell find src/modules/ -name 'lib*.a' ) \
 	  -Wl,--no-whole-archive,-soname,$(SHARED_OBJECT) -o $(SHARED_OBJECT) $(OBJECTS)
 
 # use a clever perl script to pick the modules
